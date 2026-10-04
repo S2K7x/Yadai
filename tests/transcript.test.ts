@@ -1,6 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyAssistant, groupTranscript, toolIcon, toolLabel, uid } from '../src/lib/transcript.ts';
+import {
+	TRANSCRIPT_PAGE,
+	emptyAssistant,
+	groupTranscript,
+	mergeOlderRows,
+	toolIcon,
+	toolLabel,
+	uid
+} from '../src/lib/transcript.ts';
+import { methodBody, source } from './source.ts';
 import type { HermesMessage, HermesToolCall } from '../src/lib/types.ts';
 
 // Shorthand: the transcript rows Hermes actually returns are sparse, so tests
@@ -305,4 +314,112 @@ test('emptyAssistant is a blank streaming bubble with its own id', () => {
 	assert.deepEqual(a.images, []);
 	assert.equal(a.reasoning, '');
 	assert.equal(a.detached, undefined);
+});
+
+/**
+ * Paging a transcript backwards.
+ *
+ * Upstream reads a page of messages from whichever end the request names and
+ * caps it at 500 rows — **measured** against the running gateway on a 41-row
+ * conversation: `order=oldest&limit=5` gives rows 230…236, `order=latest`
+ * gives 273…277, `order=latest&offset=5` the five before those. The thread
+ * asked for `oldest`, so a conversation past the ceiling opened on its
+ * beginning with everything recent missing.
+ */
+
+test('TRANSCRIPT_PAGE is the ceiling upstream enforces', () => {
+	// `_handle_session_messages` clamps with `min(requested_limit, 500)`:
+	// asking for more would silently get this anyway.
+	assert.equal(TRANSCRIPT_PAGE, 500);
+});
+
+test('an older page lands in front of the window', () => {
+	const older = [m({ id: 1, role: 'user' }), m({ id: 2, role: 'assistant' })];
+	const window = [m({ id: 3, role: 'user' }), m({ id: 4, role: 'assistant' })];
+	assert.deepEqual(
+		mergeOlderRows(older, window).map((r) => r.id),
+		[1, 2, 3, 4]
+	);
+});
+
+test('a row the window already holds is not added twice', () => {
+	// Upstream pages back from the NEWEST row, so a turn persisted while the
+	// reader was elsewhere shifts the offset and the page overlaps. A repeated
+	// id would throw in the keyed `{#each}` that renders the thread.
+	const window = [m({ id: 3, role: 'user' }), m({ id: 4, role: 'assistant' })];
+	const older = [m({ id: 2, role: 'assistant' }), m({ id: 3, role: 'user' })];
+	const merged = mergeOlderRows(older, window);
+	assert.deepEqual(
+		merged.map((r) => r.id),
+		[2, 3, 4]
+	);
+	assert.equal(new Set(merged.map((r) => String(r.id))).size, merged.length);
+});
+
+test('a fully overlapping page leaves the window untouched', () => {
+	const window = [m({ id: 7, role: 'user' })];
+	assert.equal(mergeOlderRows([m({ id: 7, role: 'user' })], window), window);
+	assert.equal(mergeOlderRows([], window), window);
+});
+
+test('rows upstream gave no id through are kept', () => {
+	// `groupTranscript` hands those a unique `uid()`, so they cannot collide.
+	const merged = mergeOlderRows([m({ role: 'user' }), m({ role: 'assistant' })], [
+		m({ id: 9, role: 'user' })
+	]);
+	assert.equal(merged.length, 3);
+	assert.deepEqual(
+		merged.map((r) => r.id),
+		[undefined, undefined, 9]
+	);
+});
+
+test('merging an older page folds into one transcript', () => {
+	// The point of re-folding the whole window rather than grouping the page on
+	// its own: a boundary falling inside a turn heals once the older rows land.
+	const window = [m({ id: 3, role: 'tool', tool_call_id: 'c1', content: 'ok' })];
+	const older = [
+		m({ id: 1, role: 'user', content: 'liste' }),
+		m({
+			id: 2,
+			role: 'assistant',
+			tool_calls: [{ id: 'c1', type: 'function', function: { name: 'terminal', arguments: '{}' } }]
+		})
+	];
+	const split = groupTranscript(window);
+	assert.equal(split.length, 1);
+	assert.equal(split[0].steps[0].tool_name, 'tool', 'an orphan tool row has no name to show');
+
+	const whole = groupTranscript(mergeOlderRows(older, window));
+	assert.equal(whole.length, 2);
+	assert.equal(whole[1].steps.length, 1);
+	assert.equal(whole[1].steps[0].tool_name, 'terminal');
+	assert.equal(whole[1].steps[0].result, 'ok');
+});
+
+test('the thread and the cross-conversation search both read the newest page', () => {
+	const store = source('src/lib/stores/chat.svelte.ts');
+	for (const name of ['async openSession(', 'async loadOlderHistory()']) {
+		const body = methodBody(store, name);
+		assert.match(body, /order=latest/, `${name} must read from the newest end`);
+		assert.doesNotMatch(
+			body,
+			/order=oldest/,
+			`${name} would open a long conversation on its beginning`
+		);
+	}
+	// Same window as the thread, so a hit's id is the `data-mid` the browser
+	// will scroll to — searching the other end would both miss the recent half
+	// and hand back ids the open thread never renders.
+	const search = source('src/lib/server/search.ts');
+	assert.match(search, /TRANSCRIPT_ORDER = 'latest'/);
+	assert.doesNotMatch(search, /order: 'oldest'/);
+});
+
+test('the live tail survives loading an older page', () => {
+	// A turn sent since the window loaded exists only in `messages`; re-folding
+	// `#rows` over it would erase the exchange that just happened.
+	const body = methodBody(source('src/lib/stores/chat.svelte.ts'), '#showWindow()');
+	assert.match(body, /this\.messages\.slice\(this\.#folded\)/);
+	assert.match(body, /\.\.\.folded, \.\.\.live/);
 });

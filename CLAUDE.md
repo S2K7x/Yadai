@@ -1685,9 +1685,10 @@ Le gateway n'a **aucune** route de recherche dans les messages : sa table de
 routage (`api_server.py`, 0.20.0) n'expose sur les sessions que la liste, la
 fiche, le transcript, le fork, le chat et le verrou de modèle — vérifié aussi
 par l'absence totale d'un handler de recherche dans le fichier. Mais il n'en
-faut pas : `openSession()` charge déjà tout le
-transcript (`?order=oldest&limit=500`), donc « où est-ce qu'il m'a donné cette
-commande ? » se répond dans le navigateur, sans un aller-retour.
+faut pas : `openSession()` charge déjà la fenêtre du fil
+(`?order=latest&limit=500`, point 36), donc « où est-ce qu'il m'a donné cette
+commande ? » se répond dans le navigateur, sans un aller-retour — pour les
+messages qui y sont.
 
 Et c'est sur téléphone que ça compte : une PWA installée n'a pas de
 « rechercher dans la page ». Sur desktop le Ctrl+F du navigateur trouve le
@@ -1751,7 +1752,9 @@ client, sur la boucle locale.
 `GET /api/search?q=…` (`src/lib/server/search.ts`) est ce fan-out, et il est
 borné sur chaque axe : les **40** conversations les plus récemment actives, **4**
 sondes en vol, **3** extraits par conversation, la même fenêtre de 500 messages
-que le fil ouvert. Rien ne le déclenche tout seul — `gate('search', 1, 3)`, et
+**la plus récente** que le fil ouvert (`TRANSCRIPT_PAGE`, point 36 — lire par
+l'autre bout ratait la moitié récente *et* rendait des ids que le fil n'affiche
+jamais). Rien ne le déclenche tout seul — `gate('search', 1, 3)`, et
 la palette ne l'appelle **jamais à la frappe** : le groupe « Dans les autres
 conversations » ne contient qu'une action tant qu'on ne l'a pas lancée, et la
 réponse n'est gardée que tant que la requête qui l'a produite est celle qui est
@@ -2222,6 +2225,89 @@ Raspberry Pi.
 
 Route : `GET /api/status` (champs `system` et `systemError`).
 
+### 36. Un transcript se lit par 500 lignes, et l'app lisait les mauvaises
+
+`GET /api/sessions/{id}/messages` ne renvoie jamais plus de **500 lignes** :
+`_handle_session_messages` borne tout `limit` par `min(requested_limit, 500)`.
+Ce qu'il renvoie dépend donc entièrement du bout par lequel on lit, et c'est
+`order` qui le dit — `latest` prend les dernières lignes (rendues dans l'ordre
+chronologique, `rows.reverse()` après un `ORDER BY id DESC`), `oldest` les
+premières. `openSession()` demandait `oldest` depuis toujours.
+
+**Conséquence** : au-delà de 500 lignes, ouvrir une conversation l'ouvrait sur
+son **début**, avec tout ce qui venait de s'y passer absent de l'écran — et
+aucun chemin pour l'atteindre. Le même `order: 'oldest'` était dans le fan-out
+de recherche (point 28), qui ne fouillait donc que la première moitié de chaque
+conversation : exactement l'inverse de ce que « c'était dans quelle
+conversation ? » demande.
+
+Une ligne n'est pas un message affiché : un tour écrit `user`, les `assistant`
+intermédiaires et une ligne par appel d'outil. **Relevé sur cette machine**, la
+conversation la plus chargée fait 41 lignes pour 6 tours — **6,8 lignes par
+tour**, donc le plafond tombe vers 70 tours. La compression (point 23) remet ce
+compteur à zéro en changeant de session, ce qui éloigne l'échéance sans la
+supprimer : rien ne garantit qu'un segment reste sous 500 lignes.
+
+Les trois propriétés de l'endpoint ont été **mesurées** contre le gateway en
+production, sur une conversation de 41 lignes :
+
+| requête | lignes renvoyées |
+|---|---|
+| `?order=oldest&limit=5` | 230, 231, 234, 235, 236 — le début |
+| `?order=latest&limit=5` | 273, 274, 275, 276, 277 — la fin |
+| `?order=latest&limit=5&offset=5` | 263, 264, 265, 267, 268 — les cinq d'avant |
+
+La troisième ligne est celle qui compte : **l'`offset` d'une lecture `latest`
+se compte à reculons depuis la ligne la plus récente**, et chaque page revient
+dans l'ordre chronologique. C'est donc un pagineur vers le passé, et c'est ce
+que `chat.loadOlderHistory()` utilise — le bouton « Charger les messages plus
+anciens » en tête du fil, affiché seulement quand la page reçue était pleine.
+
+Quatre choses à ne pas défaire :
+
+- **La fenêtre est refondue en entier, pas empilée.** Une coupure de page tombe
+  au milieu d'un tour : la ligne `tool` de tête se rend alors en bulle séparée
+  et sans nom d'outil (le nom vit dans le `tool_calls` de la ligne assistante,
+  restée dans la page d'avant). Regrouper la page ancienne toute seule
+  figerait cette bulle bancale ; `groupTranscript()` sur l'union la soigne.
+- **Mais ce qui a été envoyé depuis survit à la refonte.** Un tour joué après
+  le chargement n'existe que dans `messages` — il a été construit par le flux,
+  et les lignes que Hermes a persistées pour lui ne sont pas dans la fenêtre.
+  D'où `#folded`, le nombre de tours de tête issus de la fenêtre : la queue
+  vivante au-delà est réappendue. Sans ça, charger une page ancienne effacerait
+  l'échange qui vient d'avoir lieu.
+- **Le recouvrement est dédoublonné par id** (`mergeOlderRows()`, pur et
+  testé). L'offset se compte depuis la ligne la plus récente, donc un tour
+  persisté entre deux lectures décale la fenêtre amont et la page reçue
+  rechevauche la nôtre. Un id répété n'est pas un défaut d'affichage : le fil
+  est un `{#each … (message.id)}`, où une clé en double lève.
+- **Le compte ne vient pas de `message_count`.** Ce compteur s'incrémente à
+  chaque ligne ajoutée, ne redescend pas sur un `rewind`, compte les lignes
+  `system`, et sur une chaîne de compression c'est celui de la continuation. Il
+  n'est donc pas soustractible de ce que la fenêtre contient : « il reste des
+  lignes » se déduit d'une page **pleine**, et la dernière page, plus courte,
+  éteint le bouton.
+
+**Mesuré de bout en bout** à travers le proxy de l'application construite,
+contre un faux gateway rejouant la sémantique amont sur 1 200 lignes : avant,
+la lecture rendait les lignes 1→500 et la plus récente (1 200) était absente ;
+après, 701→1 200 puis 201→700 puis 1→200 — pages contiguës, 1 200 lignes
+atteignables, 1 200 ids uniques, et la page courte qui dit que le début est à
+l'écran. Et `GET /api/search?q=` retrouve maintenant un passage de la ligne
+1 100, que la fenêtre d'avant ne contenait pas.
+
+**Non vérifié** : le rendu et le maintien de la position de lecture dans un
+vrai navigateur. Aucun n'était installé dans le clone où ce changement a été
+écrit — ce qui est testé, c'est la fonction pure, le fait que les deux lectures
+demandent bien `latest` (`tests/transcript.test.ts` relit la source), et la
+route jouée pour de vrai. L'ancre de défilement garde la distance au **bas** du
+fil avant d'insérer la page, parce qu'un ajout en tête pousse tout le reste vers
+le bas.
+
+**Limite assumée** : la recherche dans le fil ouvert (point 28) et le fan-out
+entre conversations ne voient que la fenêtre chargée. Un passage antérieur se
+retrouve en chargeant la page qui le contient, pas en le cherchant.
+
 ## Événements SSE de `/api/sessions/{id}/chat/stream`
 
 | Événement | Charge utile utile | Traitement UI |
@@ -2389,7 +2475,8 @@ src/
 │   ├── turns.ts       résumé d'un tour + « faut-il notifier ? »
 │   ├── markdown.ts    rendu tolérant à l'incomplet, et la part d'un message
 │   │                  en cours qui ne sera plus re-parsée
-│   └── transcript.ts  regroupement du transcript persisté en tours UI
+│   └── transcript.ts  regroupement du transcript persisté en tours UI, et la
+│                       page de lignes plus anciennes qui vient devant
 ├── hooks.server.ts    contrôle d'origine à l'exécution + en-têtes de sécurité
 ├── routes/
 │   ├── +page.svelte   l'écran de chat (`?s=<id>` ouvre une conversation)

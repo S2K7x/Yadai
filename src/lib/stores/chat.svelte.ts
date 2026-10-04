@@ -11,7 +11,14 @@ import {
 	reasoningLabel,
 	type ReasoningEffort
 } from '$lib/reasoning';
-import { emptyAssistant, groupTranscript, uid, type UiMessage } from '$lib/transcript';
+import {
+	TRANSCRIPT_PAGE,
+	emptyAssistant,
+	groupTranscript,
+	mergeOlderRows,
+	uid,
+	type UiMessage
+} from '$lib/transcript';
 import { drafts } from './drafts.svelte';
 import { toasts } from './toast.svelte';
 import type {
@@ -97,6 +104,16 @@ class ChatStore {
 	/** True after stop(): a turn is still running server-side, unwatched. */
 	detached = $state(false);
 	loadingHistory = $state(false);
+	/**
+	 * True when the loaded window does not reach the start of the conversation.
+	 *
+	 * Set from the page being full rather than from `message_count`: that
+	 * counter is incremented per appended row and never decremented, it counts
+	 * system rows, and on a compression chain it belongs to the continuation —
+	 * so it cannot be subtracted from what the window holds.
+	 */
+	olderHistory = $state(false);
+	loadingOlder = $state(false);
 	loadingSessions = $state(false);
 
 	/** null while unknown, then true/false. Drives the offline banner. */
@@ -117,6 +134,35 @@ class ChatStore {
 	toolCount = $state(0);
 	mcpTools = $state<string[]>([]);
 
+	/**
+	 * The transcript rows of the loaded window, oldest first.
+	 *
+	 * Kept beside `messages` because paging backwards has to re-fold the whole
+	 * window: a page boundary can fall inside a turn, so the older rows change
+	 * which bubble the tool steps belong to. Not `$state` — nothing reads it
+	 * reactively, and proxying a 500-row array for that would be a waste.
+	 */
+	#rows: HermesMessage[] = [];
+	/**
+	 * Bumped every time the loaded window is thrown away.
+	 *
+	 * Two transcript reads can be in flight at once — tapping one conversation
+	 * then another, or a page of older messages arriving after the thread was
+	 * replaced. Each read captures this number and drops its answer if it no
+	 * longer matches, which is also what keeps `loadingHistory` owned by the
+	 * read that is still wanted.
+	 */
+	#window = 0;
+	/**
+	 * How many leading turns of `messages` were folded from `#rows`.
+	 *
+	 * A turn sent since the window loaded lives only in `messages` — it was
+	 * built from the stream, and the rows Hermes persisted for it are not in
+	 * `#rows`. Re-folding the window on top of `messages` would therefore erase
+	 * the exchange that just happened, so the live tail past this index is kept
+	 * and re-appended instead.
+	 */
+	#folded = 0;
 	#abort: AbortController | null = null;
 	#lastPrompt: LastPrompt | null = null;
 	/**
@@ -531,7 +577,7 @@ class ChatStore {
 			});
 			this.sessions = [res.session, ...this.sessions];
 			this.sessionId = res.session.id;
-			this.messages = [];
+			this.#resetWindow();
 			this.detached = false;
 			return res.session.id;
 		} catch (err) {
@@ -540,19 +586,55 @@ class ChatStore {
 		}
 	}
 
+	/** Forget the loaded transcript window, before loading another one. */
+	#resetWindow(): number {
+		this.#rows = [];
+		this.messages = [];
+		this.#folded = 0;
+		this.olderHistory = false;
+		this.loadingOlder = false;
+		return ++this.#window;
+	}
+
+	/** Show the folded window, keeping whatever has been sent since. */
+	#showWindow() {
+		const live = this.messages.slice(this.#folded);
+		const folded = groupTranscript(this.#rows);
+		this.#folded = folded.length;
+		this.messages = live.length ? [...folded, ...live] : folded;
+	}
+
+	/**
+	 * Open a conversation on its MOST RECENT messages.
+	 *
+	 * `order` is not a cosmetic preference here. Upstream reads the page from
+	 * whichever end it names — `latest` returns the last `limit` rows (in
+	 * chronological order), `oldest` the first ones — and this call used to say
+	 * `oldest`. Past the 500-row ceiling that meant opening a long conversation
+	 * on its *beginning*, with everything that had just happened missing and no
+	 * way to reach it. **Measured** against the running gateway on a 41-row
+	 * conversation: `order=oldest&limit=5` returns rows 230…236, `order=latest`
+	 * returns 273…277, and `order=latest&offset=5` the five before those — so
+	 * the same endpoint also pages backwards, which is what `loadOlderHistory`
+	 * uses.
+	 */
 	async openSession(id: string) {
 		if (this.streaming) this.stop();
 		this.sessionId = id;
-		this.messages = [];
+		const gen = this.#resetWindow();
 		this.detached = false;
 		this.loadingHistory = true;
 		try {
 			const res = await withRetry(() =>
 				api<{ data: HermesMessage[] }>(
-					`/api/sessions/${encodeURIComponent(id)}/messages?order=oldest&limit=500`
+					`/api/sessions/${encodeURIComponent(id)}/messages?order=latest&limit=${TRANSCRIPT_PAGE}`
 				)
 			);
-			this.messages = groupTranscript(res.data ?? []);
+			// A conversation opened meanwhile owns the thread now.
+			if (this.#window !== gen) return;
+			this.#rows = res.data ?? [];
+			this.#showWindow();
+			this.olderHistory = this.#rows.length >= TRANSCRIPT_PAGE;
 		} catch (err) {
 			if (err instanceof ApiError && err.code === AppErrorCode.SessionGone) {
 				// Deleted from the CLI, Telegram, or another tab. Re-sync
@@ -565,7 +647,38 @@ class ChatStore {
 				toasts.error(err, { label: 'Réessayer', run: () => this.openSession(id) });
 			}
 		} finally {
-			this.loadingHistory = false;
+			if (this.#window === gen) this.loadingHistory = false;
+		}
+	}
+
+	/**
+	 * Load the page of messages just before the window on screen.
+	 *
+	 * The offset is measured back from the newest row by upstream, so it is
+	 * taken from what we hold; `mergeOlderRows` drops whatever a turn written
+	 * meanwhile made overlap. A short page means the start of the conversation
+	 * is now on screen.
+	 */
+	async loadOlderHistory() {
+		const id = this.sessionId;
+		if (!id || !this.olderHistory || this.loadingOlder || this.loadingHistory) return;
+		const gen = this.#window;
+		this.loadingOlder = true;
+		try {
+			const res = await withRetry(() =>
+				api<{ data: HermesMessage[] }>(
+					`/api/sessions/${encodeURIComponent(id)}/messages?order=latest&limit=${TRANSCRIPT_PAGE}&offset=${this.#rows.length}`
+				)
+			);
+			if (this.#window !== gen) return;
+			const older = res.data ?? [];
+			this.#rows = mergeOlderRows(older, this.#rows);
+			this.#showWindow();
+			this.olderHistory = older.length >= TRANSCRIPT_PAGE;
+		} catch (err) {
+			toasts.error(err, { label: 'Réessayer', run: () => this.loadOlderHistory() });
+		} finally {
+			if (this.#window === gen) this.loadingOlder = false;
 		}
 	}
 
@@ -660,7 +773,7 @@ class ChatStore {
 		this.archivedSessions = this.archivedSessions.filter((s) => s.id !== id);
 		if (wasOpen) {
 			this.sessionId = null;
-			this.messages = [];
+			this.#resetWindow();
 		}
 		try {
 			await api(`/api/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' });

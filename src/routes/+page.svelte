@@ -205,6 +205,27 @@
 		}
 	}
 
+	/**
+	 * Load the page before the window, without losing the reader's place.
+	 *
+	 * Prepending content moves everything below it down, so the distance from
+	 * the *bottom* is what gets held: the browser keeps `scrollTop`, which
+	 * would otherwise jump the view up by the height of the arriving page. A
+	 * finished message renders in one synchronous pass (`Markdown.svelte`), so
+	 * one `tick()` is enough for the new heights to be real.
+	 */
+	async function loadOlder() {
+		if (!scroller) return;
+		// The button is at the top of the thread, but a short conversation can
+		// still count as pinned — and the autoscroll effect would then yank the
+		// view to the bottom the moment the older page renders.
+		pinnedToBottom = false;
+		const fromBottom = scroller.scrollHeight - scroller.scrollTop;
+		await chat.loadOlderHistory();
+		await tick();
+		if (scroller) scroller.scrollTop = scroller.scrollHeight - fromBottom;
+	}
+
 	function scrollToBottom() {
 		scroller?.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
 		pinnedToBottom = true;
@@ -491,6 +512,22 @@
 					</div>
 				{/if}
 
+				<!-- Upstream hands back at most 500 rows per read, and the window
+				     this thread shows is the NEWEST one. Past that ceiling the
+				     start of the conversation is a page away, not lost. -->
+				{#if chat.olderHistory && !chat.loadingHistory}
+					<div class="older">
+						<button onclick={loadOlder} disabled={chat.loadingOlder}>
+							<Icon name="arrowUp" />
+							{chat.loadingOlder ? 'Chargement…' : 'Charger les messages plus anciens'}
+						</button>
+						<p>
+							Les plus récents sont affichés : cette conversation est trop longue pour tenir
+							en une seule lecture.
+						</p>
+					</div>
+				{/if}
+
 				{#each chat.messages as message (message.id)}
 					<Message
 						{message}
@@ -741,6 +778,40 @@
 		color: var(--text-faint);
 		font-size: 13px;
 	}
+	/* The page above the window: a raised pill, like every other secondary
+	   control of the app, over the sunken thread. */
+	.older {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		padding: 2px 0 14px;
+		text-align: center;
+	}
+	.older button {
+		display: flex;
+		align-items: center;
+		gap: 7px;
+		min-height: 36px;
+		padding: 8px 16px;
+		background: var(--bg-raised);
+		border-radius: var(--radius-pill);
+		box-shadow: var(--shadow-card);
+		font-size: 12.5px;
+		color: var(--text-muted);
+	}
+	.older button:hover:not(:disabled) {
+		background: var(--bg-hover);
+		color: var(--text);
+	}
+	.older button:disabled {
+		opacity: 0.6;
+	}
+	.older p {
+		max-width: 420px;
+		color: var(--text-faint);
+		font-size: 12px;
+	}
 	.welcome {
 		padding: 4vh 0 0;
 		color: var(--text-muted);
@@ -934,6 +1005,9 @@
 		}
 		.thread {
 			padding: 10px 12px 8px;
+		}
+		.older button {
+			min-height: 44px;
 		}
 		.hero {
 			padding: 22px 20px 44px;

@@ -1,7 +1,7 @@
 import { getSessionMessages, listSessions } from './hermes';
 import { trashedIds } from './db';
 import { activityAt, sessionLabel } from '$lib/sessions';
-import { groupTranscript } from '$lib/transcript';
+import { TRANSCRIPT_PAGE, groupTranscript } from '$lib/transcript';
 import { findInTranscript, type SearchResult, type SessionMatches } from '$lib/search';
 
 /**
@@ -25,8 +25,16 @@ const SEARCH_SESSION_LIMIT = 40;
 const SEARCH_CONCURRENCY = 4;
 /** Hits kept per conversation: a palette row offers somewhere to go, not a report. */
 const HITS_PER_SESSION = 3;
-/** Same window the browser loads for the open thread, so the ids line up. */
-const TRANSCRIPT_LIMIT = 500;
+/**
+ * Same window the browser loads for the open thread, so the ids line up.
+ *
+ * `order` matters as much as the size: upstream reads the page from whichever
+ * end it names, so `oldest` — what this used to ask for — searched the *first*
+ * 500 rows of each conversation. Past that ceiling the recent half of a long
+ * conversation was unsearchable, which is the half a question like "where did
+ * he give me that command?" is about.
+ */
+const TRANSCRIPT_ORDER = 'latest' as const;
 
 export async function searchConversations(query: string): Promise<SearchResult> {
 	const live = await listSessions({ limit: 200 });
@@ -45,8 +53,8 @@ export async function searchConversations(query: string): Promise<SearchResult> 
 				let messages;
 				try {
 					messages = await getSessionMessages(session.id, {
-						order: 'oldest',
-						limit: TRANSCRIPT_LIMIT
+						order: TRANSCRIPT_ORDER,
+						limit: TRANSCRIPT_PAGE
 					});
 				} catch {
 					// One unreadable conversation (deleted mid-search, upstream

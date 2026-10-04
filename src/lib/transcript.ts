@@ -176,6 +176,36 @@ export function groupTranscript(messages: HermesMessage[]): UiMessage[] {
 }
 
 /**
+ * Rows the browser loads for a conversation in one go.
+ *
+ * It is the ceiling upstream enforces too (`_handle_session_messages` clamps
+ * any `limit` to 500), so it cannot be raised from here — a longer transcript
+ * is read page by page with `loadOlderHistory()`.
+ */
+export const TRANSCRIPT_PAGE = 500;
+
+/**
+ * Prepend an older page of rows to the window already loaded.
+ *
+ * Upstream pages `order=latest` backwards from the *newest* row, so an offset
+ * taken from what we hold goes stale the moment Hermes persists another row —
+ * which it does on every turn. A page fetched while a turn was writing
+ * therefore overlaps the window we already have, and a repeated row id is not
+ * a cosmetic defect: the thread renders `{#each … (message.id)}`, where a
+ * duplicate key throws. Hence the merge is by id rather than a splice, and
+ * rows upstream gave no id through are kept (`groupTranscript` hands those a
+ * unique `uid()` anyway).
+ */
+export function mergeOlderRows(older: HermesMessage[], loaded: HermesMessage[]): HermesMessage[] {
+	const known = new Set<string>();
+	for (const row of loaded) if (row.id !== undefined && row.id !== null) known.add(String(row.id));
+	const fresh = older.filter(
+		(row) => row.id === undefined || row.id === null || !known.has(String(row.id))
+	);
+	return fresh.length ? [...fresh, ...loaded] : loaded;
+}
+
+/**
  * Which drawn icon stands for a Hermes tool family.
  *
  * Returns a name from `$lib/icons`, not a glyph: an emoji is drawn by the
