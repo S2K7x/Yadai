@@ -235,7 +235,7 @@ Succès : **200** en multipart (avec image), **204** sans image.
 
 Le message doit contenir, en français : ce que tu as changé, pourquoi, ce que
 ça apporte concrètement, ce que le relecteur doit surveiller, le lien du commit
-(`https://github.com/S2K7x/Hermes-Ui/commit/<sha>`) et la commande de retour
+(`https://github.com/S2K7x/Yadai/commit/<sha>`) et la commande de retour
 arrière avec le SHA précédent.
 
 ---
