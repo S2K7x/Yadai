@@ -3,6 +3,7 @@ import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { UpstreamError, retrying } from '../src/lib/server/upstream.ts';
 import { decodeJson } from '../src/lib/json.ts';
+import { ApiError, AppErrorCode, humanizeError } from '../src/lib/errors.ts';
 
 /**
  * The gateway, the dashboard and the skills directory used to carry three
@@ -170,4 +171,52 @@ test('every upstream error is built as (status, message, code)', async () => {
 		/new SkillsFsError\(\s*\d+,\s*'[a-z][a-z0-9_]*'/,
 		'a SkillsFsError is being built with its code where the message goes'
 	);
+});
+
+// ---------------------------------------------------------------------------
+// Two 429s, two facts
+// ---------------------------------------------------------------------------
+
+/**
+ * `gate()` used to borrow upstream's `rate_limit_exceeded`.
+ *
+ * That code is Hermes' word for its concurrent-run cap — `_handle_create_run`
+ * answers `429 {"code": "rate_limit_exceeded"}` with "Too many concurrent runs
+ * (max N)" (api_server.py 0.20.0) — and `humanizeError` translates it into a
+ * sentence about simultaneous turns, which is the point of having a code at
+ * all. Our token bucket is a different fact with a different remedy, so a
+ * rate-limited `GET /api/skills/files` (measured at twelve calls in a burst)
+ * was telling the user that Hermes was at its turn cap while nothing was
+ * running at all.
+ */
+test('the token bucket does not speak in the concurrency cap\'s name', async () => {
+	const respond = await readFile(new URL('respond.ts', SRC), 'utf8');
+	const gate = respond.slice(respond.indexOf('export function gate('));
+	assert.match(gate, /AppErrorCode\.TooManyRequests/);
+	assert.doesNotMatch(
+		gate,
+		/AppErrorCode\.RateLimited/,
+		'gate() is minting the code that means "an agent is already running"'
+	);
+
+	// And the turn semaphore keeps it: that one really is the cap.
+	const stream = await readFile(
+		new URL('../src/routes/api/sessions/[id]/stream/+server.ts', import.meta.url),
+		'utf8'
+	);
+	assert.match(stream, /AppErrorCode\.RateLimited/);
+});
+
+test('each of the two 429s gets its own sentence', () => {
+	const cap = humanizeError(
+		new ApiError(429, 'Too many concurrent runs (max 10)', AppErrorCode.RateLimited)
+	);
+	const bucket = humanizeError(
+		new ApiError(429, 'Trop de requêtes. Ralentissez un instant.', AppErrorCode.TooManyRequests)
+	);
+	assert.match(cap, /tours simultanés/);
+	assert.doesNotMatch(bucket, /tours simultanés/);
+	assert.notEqual(cap, bucket);
+	// Both are still worth replaying — only the explanation differs.
+	assert.ok(new ApiError(429, '', AppErrorCode.TooManyRequests).retryable);
 });

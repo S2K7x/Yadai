@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { agents } from '$lib/stores/agents.svelte';
 	import { chat } from '$lib/stores/chat.svelte';
-	import { agentColor, agentInitial, directReports } from '$lib/agents';
+	import { agentBinding, agentColor, agentInitial, directReports } from '$lib/agents';
 	import { menuKeydown } from '$lib/client/menu.svelte';
 
 	interface Props {
@@ -14,8 +14,24 @@
 	let trigger = $state<HTMLButtonElement | null>(null);
 	let menu = $state<HTMLDivElement | null>(null);
 
-	let active = $derived(agents.byId(chat.activeAgentId));
+	// Three answers, not two: a roster we failed to read must not be allowed to
+	// say "this conversation has no agent" — the binding lives on the session
+	// row and the persona is composed from it server-side on every turn.
+	let binding = $derived(agentBinding(agents.items, chat.activeAgentId));
+	let active = $derived(binding.kind === 'known' ? binding.agent : undefined);
 	let reports = $derived(active ? directReports(agents.items, active) : []);
+
+	/** What the trigger shows, and what a screen reader hears, per binding. */
+	let label = $derived(
+		binding.kind === 'known' ? binding.agent.name : binding.kind === 'unknown' ? binding.id : 'Agent'
+	);
+	let described = $derived(
+		binding.kind === 'known'
+			? `Agent : ${binding.agent.name}`
+			: binding.kind === 'unknown'
+				? `Agent : ${binding.id} — sa fiche n'a pas pu être lue`
+				: 'Agent : aucun, prompt par défaut de Yadai'
+	);
 
 	/** Escape hands the focus back to the button the list came from. */
 	function close(refocus = false) {
@@ -46,15 +62,20 @@
 			// "close the drawer" or "detach the running turn".
 			event.currentTarget.focus();
 			open = !open;
+			// Opening is a retry: `ensureLoaded` returns early only once a read
+			// has succeeded, so a roster that failed at boot is re-read here.
+			if (open) void agents.ensureLoaded();
 		}}
 		aria-haspopup="true"
 		aria-expanded={open}
-		aria-label={active ? `Agent : ${active.name}` : 'Agent : aucun, prompt par défaut de Yadai'}
-		title={active ? `Agent : ${active.name}` : 'Aucun agent — prompt par défaut de Yadai'}
+		aria-label={described}
+		title={described}
 	>
 		<span class="dot"></span>
-		<span class="label">{active ? active.name : 'Agent'}</span>
-		<span class="mini">{active ? agentInitial(active) : 'Agent'}</span>
+		<span class="label">{label}</span>
+		<span class="mini"
+			>{binding.kind === 'known' ? agentInitial(binding.agent) : binding.kind === 'unknown' ? '?' : 'Agent'}</span
+		>
 		<span class="chev" aria-hidden="true">▾</span>
 	</button>
 
@@ -69,6 +90,22 @@
 					L'agent choisi démarrera la prochaine discussion.
 				{/if}
 			</p>
+			{#if agents.loadError}
+				<!-- Above the list, never instead of it: the list may be partly
+				     right, and an empty one is not the same claim as a failed read. -->
+				<div class="read-failed">
+					<p>
+						L'équipe n'a pas pu être lue — cette liste est peut-être incomplète.
+						{#if binding.kind === 'unknown'}
+							Cette conversation tourne toujours comme « {binding.id} ».
+						{/if}
+					</p>
+					<p class="why">{agents.loadError}</p>
+					<button class="retry" onclick={() => void agents.reload()} disabled={agents.loading}>
+						{agents.loading ? 'Lecture…' : 'Réessayer'}
+					</button>
+				</div>
+			{/if}
 			<div class="items">
 				<button class:sel={!chat.activeAgentId} onclick={() => choose('')}>
 					<span class="n">Sans agent</span>
@@ -225,6 +262,34 @@
 	.hint.team {
 		margin: 6px 0 0;
 	}
+	.read-failed {
+		margin: 0 0 6px;
+		padding: 7px 9px;
+		border-radius: 10px;
+		background: var(--danger-soft);
+	}
+	.read-failed p {
+		margin: 0;
+		font-size: 12px;
+		line-height: 1.45;
+		color: var(--text);
+	}
+	.read-failed .why {
+		margin-top: 3px;
+		color: var(--text-muted);
+		font-size: 11px;
+	}
+	.retry {
+		margin-top: 5px;
+		padding: 4px 11px;
+		border-radius: 999px;
+		background: var(--bg-raised);
+		font-size: 12px;
+	}
+	.retry:disabled {
+		opacity: 0.45;
+		cursor: default;
+	}
 	.manage {
 		width: 100%;
 		margin-top: 6px;
@@ -240,7 +305,8 @@
 	/* Thumb-sized rows on a phone, like every other control of the app. */
 	@media (max-width: 820px) {
 		.items button,
-		.manage {
+		.manage,
+		.retry {
 			min-height: 44px;
 		}
 	}

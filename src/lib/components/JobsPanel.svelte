@@ -198,6 +198,19 @@
 							</button>
 						{/each}
 					</div>
+					{#if agents.loadError}
+						<!-- Without this the chips just silently lack their agents, and
+						     the character budget below is computed as if no card rode
+						     along: the server, which composes from its own roster,
+						     would then refuse the save on a limit never shown here. -->
+						<div class="read-failed">
+							<p>L'équipe n'a pas pu être lue — les agents manquent ci-dessus.</p>
+							<p class="muted small">{agents.loadError}</p>
+							<button type="button" onclick={() => void agents.reload()} disabled={agents.loading}>
+								{agents.loading ? 'Lecture…' : 'Réessayer'}
+							</button>
+						</div>
+					{/if}
 					<p class="muted small">
 						{#if agentId}
 							La fiche de cet agent part avec la tâche : elle s'exécutera avec sa personnalité et

@@ -146,9 +146,25 @@
 
 	<div class="body">
 		{#if editing === null}
+			{#if agents.loadError}
+				<!-- Above the list, not instead of it, and above the create button:
+				     creating is still safe (the server validates against its own
+				     roster and answers with the real one), but "Aucun agent" said
+				     over a read that never landed is the claim worth not making. -->
+				<div class="read-failed">
+					<p>La liste des agents n'a pas pu être lue.</p>
+					<p class="why">{agents.loadError}</p>
+					<button onclick={() => void agents.reload()} disabled={agents.loading}>
+						{agents.loading ? 'Lecture…' : 'Réessayer'}
+					</button>
+				</div>
+			{/if}
+
 			<button class="new" onclick={startCreate}>＋ Nouvel agent</button>
 
-			{#if agents.items.length === 0}
+			{#if !agents.loaded && agents.loading}
+				<p class="none">Chargement…</p>
+			{:else if agents.loaded && agents.items.length === 0}
 				<p class="none">
 					Aucun agent pour l'instant. Un agent, c'est un nom, un métier et un prompt système
 					renvoyé à chaque message.
@@ -596,6 +612,32 @@
 		text-align: center;
 		color: var(--text-faint);
 		font-size: 13px;
+	}
+	.read-failed {
+		margin-bottom: var(--gap-card);
+		padding: 12px 14px;
+		border-radius: var(--radius-card);
+		background: var(--danger-soft);
+		text-align: center;
+	}
+	.read-failed p {
+		margin: 0 0 6px;
+		font-size: 13px;
+	}
+	.read-failed .why {
+		color: var(--text-muted);
+		font-size: 12px;
+	}
+	.read-failed button {
+		min-height: 44px;
+		padding: 6px 16px;
+		border-radius: 999px;
+		background: var(--bg-raised);
+		font-size: 13px;
+	}
+	.read-failed button:disabled {
+		opacity: 0.45;
+		cursor: default;
 	}
 	.foot-note {
 		flex: 1;

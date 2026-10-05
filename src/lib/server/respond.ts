@@ -55,13 +55,20 @@ export async function proxy<T>(
 /**
  * Rate-limit gate for a route class. Returns a 429 response when the caller
  * should back off, or null to proceed.
+ *
+ * The code is `too_many_requests`, not the `rate_limit_exceeded` this used to
+ * send: that one is upstream's word for "an agent is already running" and
+ * `humanizeError` explains it as such. Sharing it meant a rate-limited read of
+ * the skills tree, the agent roster or the job list told the user that Hermes
+ * was at its concurrent-turn cap — a sentence about a cap nothing was anywhere
+ * near.
  */
 export function gate(key: string, perSecond: number, burst: number): Response | null {
 	if (allowRequest(key, perSecond, burst)) return null;
 	return errorResponse(
 		429,
 		'Trop de requêtes. Ralentissez un instant.',
-		AppErrorCode.RateLimited,
+		AppErrorCode.TooManyRequests,
 		1
 	);
 }

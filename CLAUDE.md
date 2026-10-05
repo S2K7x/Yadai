@@ -881,6 +881,42 @@ Ce que ça implique dans le code :
 - `agent_id` sur une ligne de session **n'est pas un champ Hermes**. C'est le
   proxy `/api/sessions*` qui l'ajoute à la sortie, à partir de `session_meta`.
 
+**Une liste d'agents qu'on n'a pas pu lire n'est pas une équipe vide.** Le
+roster vient de `GET /api/agents` ; le lien conversation → agent vient d'un
+tout autre endroit — la colonne `agent_id` de `session_meta`, que
+`GET /api/sessions` recopie sur la ligne, et depuis laquelle le serveur
+recompose la persona à **chaque** tour. Une liste qui a échoué n'est donc pas
+en position de démentir ce lien, et `agents.items === []` portait pourtant deux
+faits à la fois : « l'équipe est vide » et « je n'ai pas su lire ».
+
+**Mesuré** contre l'application en production : `GET /api/agents` répond `429`
+au-delà de douze appels rapprochés (le garde-fou de `gate()`), le store
+l'avalait **sans un mot**, et les trois surfaces qui faisaient ensuite un
+`byId()` lisaient l'absence comme « aucun agent » — le sélecteur de l'entête
+affichait « Agent » avec `aria-label="Agent : aucun, prompt par défaut de
+Yadai"` et le panneau affirmait « Aucun agent pour l'instant », pour une
+conversation que Hermes faisait toujours tourner avec cette persona.
+
+- `agentBinding()` (`src/lib/agents.ts`, pure et testée) rend **trois**
+  réponses — `none`, `known`, `unknown` — et `unknown` est celle qui manquait.
+  Elle couvre aussi le transitoire honnête : un agent supprimé depuis un autre
+  onglet, dont le serveur a délié les conversations mais dont nos lignes ne
+  sont pas encore relistées. Dans les deux cas la seule phrase vraie est « lié
+  à quelque chose que cette liste ne sait pas décrire ».
+- Le store enregistre `loadError` au lieu de l'avaler, et expose `reload()`.
+  Pas de toast : ce chargement part au démarrage à côté de la liste des
+  conversations, qui dit déjà qu'un serveur est injoignable. Ce sont les
+  surfaces qui le montrent, là où le choix se fait, avec « Réessayer » —
+  **ouvrir le sélecteur est lui-même une relecture**.
+- Rien ici n'est destructeur, et c'est pour ça que le remède n'est pas celui de
+  la bibliothèque de prompts (point 15) : chaque écriture a sa propre route et
+  le serveur valide contre son propre `listAgents()`, donc un roster non lu ne
+  peut pas en écraser un. Ce qu'il pouvait faire, c'était **affirmer le
+  contraire de la réalité** — et le formulaire de tâche budgétait en plus son
+  instruction comme si aucune fiche d'agent ne voyageait avec elle, si bien que
+  le serveur refusait l'enregistrement sur une borne jamais affichée
+  (point 14).
+
 **Ce qui n'est PAS fait, et ne doit pas être promis** : les sous-agents ne sont
 pas streamés. Sur la Sessions API une délégation n'apparaît que comme une étape
 d'outil `delegate_task` ; les événements `subagent.start` / `subagent.complete`
@@ -2448,7 +2484,9 @@ src/
 │   ├── icons.ts       le jeu d'icônes : tracés 24×24, sans dépendance
 │   ├── trash.ts       corbeille : compte à rebours, échéance, lignes à balayer
 │   ├── json.ts        décodage d'un corps de réponse qui n'est peut-être pas du JSON
-│   ├── agents.ts      agents : bornes, cycles, arbre d'équipe, prompt composé
+│   ├── agents.ts      agents : bornes, cycles, arbre d'équipe, prompt composé,
+│   │                  et ce qu'un roster non lu peut honnêtement dire du lien
+│   │                  d'une conversation
 │   ├── approvals.ts   tour retombé faute d'approbation, + politique d'approbation
 │   ├── errors.ts      ApiError + codes + `humanizeError`
 │   ├── jobs.ts        horaires cron validés/traduits/composés, état et tri
@@ -2530,6 +2568,20 @@ actionnable. « Too many concurrent runs (max 10) » ne dit rien à l'utilisateu
 « Hermes exécute déjà le maximum de tours simultanés » si. Ajouter un cas ici
 plutôt que d'afficher le texte amont brut.
 
+**Et un code ne se partage pas entre deux faits.** `rate_limit_exceeded` est le
+mot d'**amont** pour son cap de tours simultanés (`_handle_create_run` répond
+`429 {"code": "rate_limit_exceeded"}` avec « Too many concurrent runs (max N) »,
+`api_server.py` 0.20.0 ~ligne 6060), et le sémaphore de
+`MAX_CONCURRENT_TURNS` le reprend à bon droit : il dit la même chose. Le token
+bucket de `gate()`, lui, l'avait emprunté — et comme `humanizeError()` ne peut
+expliquer que le code qu'on lui donne, une lecture bridée annonçait un cap dont
+rien n'était proche. **Mesuré** sur l'application construite :
+`GET /api/skills/files` et `GET /api/agents` répondent `429` au-delà de douze
+appels rapprochés, et la phrase affichée était « Yadai exécute déjà le maximum
+de tours simultanés » alors qu'aucun tour ne tournait. D'où
+`too_many_requests`, dont le remède est une seconde de patience et pas un tour
+à attendre. Un nouveau 429 forgé ici prend son propre code.
+
 **4. `lib/availability.ts`** — « je n'ai pas pu lire » n'est pas
 « c'est désactivé ». Trois panneaux se tiennent devant quelque chose de
 facultatif — l'éditeur de skills et son bind mount (point 11), les providers et
@@ -2540,7 +2592,7 @@ et chacun a donc un écran « c'est éteint, voici pourquoi ». Le texte de ces
 lecture.
 
 **Mesuré sur ce Pi**, contre l'application qui tourne : `GET /api/skills/files`
-répond `429 rate_limit_exceeded` au-delà de douze appels rapprochés (le
+répond `429 too_many_requests` au-delà de douze appels rapprochés (le
 garde-fou de `gate()`) et `500` sur une erreur de système de fichiers
 (`EACCES: permission denied, scandir`) ; et le navigateur forge le sien —
 `Connexion perdue.` — dès qu'un téléphone quitte le tailnet. Les trois

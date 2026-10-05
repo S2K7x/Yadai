@@ -6,6 +6,7 @@ import {
 	MAX_AGENT_NAME,
 	MAX_AGENT_PROMPT,
 	CHILD_BRIEF_CHARS,
+	agentBinding,
 	agentFromDraft,
 	agentSlug,
 	composeSystemPrompt,
@@ -21,6 +22,7 @@ import {
 	type Agent,
 	type AgentDraft
 } from '../src/lib/agents.ts';
+import { methodBody, source } from './source.ts';
 
 function agent(id: string, over: Partial<Agent> = {}): Agent {
 	return {
@@ -512,4 +514,102 @@ test('the same child listed twice is walked once', () => {
 	];
 	const nodes = teamTree(list, 'boss');
 	assert.equal(nodes.filter((n) => n.agent.id === 'seeker').length, 1);
+});
+
+// ---------------------------------------------------------------------------
+// agentBinding — the roster that failed to load must not claim an empty team
+// ---------------------------------------------------------------------------
+
+/**
+ * What this guards, and why it is a function rather than a `find()`.
+ *
+ * `agents.items` is `[]` both before the first read and for a team that really
+ * has no agent, and the store used to swallow a failed read without a word —
+ * `GET /api/agents` answers 429 past twelve calls in a burst, measured against
+ * the app in production. The three surfaces that then looked the conversation's
+ * `agent_id` up got `undefined` and said "no agent": the header picker read
+ * "Agent" with `aria-label="Agent : aucun"`, the panel read "Aucun agent pour
+ * l'instant", for a conversation whose turns Hermes was still composing from
+ * that very persona (the prompt is built server-side from `session_meta`, which
+ * never consults the browser — CLAUDE.md §18).
+ */
+test('a binding nobody can describe is not the same as no binding', () => {
+	const roster = [agent('chef'), agent('recherche')];
+
+	assert.deepEqual(agentBinding(roster, 'chef'), { kind: 'known', agent: roster[0] });
+	assert.deepEqual(agentBinding(roster, ''), { kind: 'none' });
+	assert.deepEqual(agentBinding(roster, null), { kind: 'none' });
+	assert.deepEqual(agentBinding(roster, undefined), { kind: 'none' });
+
+	// The one case that used to collapse into `none`.
+	assert.deepEqual(agentBinding([], 'chef'), { kind: 'unknown', id: 'chef' });
+	assert.deepEqual(agentBinding(roster, 'parti-ailleurs'), {
+		kind: 'unknown',
+		id: 'parti-ailleurs'
+	});
+});
+
+test('an empty roster still reads as "no agent" when nothing is bound', () => {
+	assert.deepEqual(agentBinding([], ''), { kind: 'none' });
+	assert.deepEqual(agentBinding([], null), { kind: 'none' });
+});
+
+// ---------------------------------------------------------------------------
+// The surfaces, and the store that feeds them
+// ---------------------------------------------------------------------------
+
+/**
+ * Source-read, for the same reason as `tests/boot.test.ts`: a rune store and
+ * compiled markup do not import under the type stripper, so what is enforced
+ * here is the shape. Crude, and still the difference between an invariant
+ * that is documented and one that holds.
+ */
+test('a failed roster read is recorded, not swallowed', () => {
+	const store = source('src/lib/stores/agents.svelte.ts');
+	const load = methodBody(store, 'async #load()');
+	assert.match(load, /loadError = humanizeError\(err\)/, '#load() must say why it failed');
+	assert.doesNotMatch(load, /catch \{/, '#load() must not catch without recording');
+	// And a successful read — or a write, which answers with the whole roster —
+	// has to clear it, or the warning outlives the outage.
+	assert.match(load, /loadError = ''/);
+	assert.match(methodBody(store, "async #write("), /loadError = ''/);
+	// "Réessayer" needs something to call that actually re-reads.
+	assert.match(store, /reload\(\): Promise<void>/);
+});
+
+test('the picker asks the binding, never the bare lookup', () => {
+	const picker = source('src/lib/components/AgentPicker.svelte');
+	assert.match(picker, /agentBinding\(agents\.items, chat\.activeAgentId\)/);
+	assert.doesNotMatch(
+		picker,
+		/agents\.byId\(/,
+		'a byId() miss cannot tell an unread roster from an empty team'
+	);
+	// The failure is on screen where the choice is made, with a way out.
+	assert.match(picker, /agents\.loadError/);
+	assert.match(picker, /agents\.reload\(\)/);
+	// Opening the popup is itself a retry.
+	assert.match(picker, /if \(open\) void agents\.ensureLoaded\(\)/);
+});
+
+test('"Aucun agent" is only said over a roster that was actually read', () => {
+	const panel = source('src/lib/components/AgentsPanel.svelte');
+	assert.match(panel, /agents\.loaded && agents\.items\.length === 0/);
+	assert.doesNotMatch(
+		panel,
+		/\{#if agents\.items\.length === 0\}/,
+		'an empty list is not a read that came back empty'
+	);
+	assert.match(panel, /agents\.loadError/);
+	assert.match(panel, /agents\.reload\(\)/);
+});
+
+test('the job form says why its agent chips are missing', () => {
+	// The instruction budget here is composed from the roster, and the server
+	// composes the real prompt from its own: an unread roster silently budgets
+	// 5 000 characters for a task whose card eats into them, and the save is
+	// then refused on a limit the form never showed.
+	const jobs = source('src/lib/components/JobsPanel.svelte');
+	assert.match(jobs, /agents\.loadError/);
+	assert.match(jobs, /agents\.reload\(\)/);
 });

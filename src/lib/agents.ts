@@ -277,6 +277,43 @@ export const agentLabel = (agent: Pick<Agent, 'emoji' | 'name'>): string =>
 export const agentInitial = (agent: Pick<Agent, 'name'>): string =>
 	agent.name.trim().charAt(0).toUpperCase() || '·';
 
+/**
+ * What the roster can honestly say about the agent a conversation runs as.
+ *
+ * Three answers, not two — and that is the whole point. An empty roster is two
+ * different facts wearing one shape: a team that genuinely has no agent, and a
+ * team we failed to read. The binding itself does not come from the roster: it
+ * is `agent_id` on the session row, which `GET /api/sessions` decorates from
+ * `session_meta`, and the turn's persona is composed from that same column
+ * server-side on every message (CLAUDE.md §18). A list we could not fetch is
+ * therefore in no position to unsay it.
+ *
+ * Looking the id up and reading `undefined` as "no agent" is exactly that
+ * unsaying. **Measured** against the app in production: `GET /api/agents`
+ * answers `429` past twelve calls in a burst, the store swallowed it without a
+ * word, and the header then read "Agent" with
+ * `aria-label="Agent : aucun, prompt par défaut de Yadai"` for a conversation
+ * Hermes was still running as that agent.
+ *
+ * `unknown` also covers the honest transient — an agent deleted from another
+ * tab, whose sessions the server has unbound but whose rows we have not
+ * re-listed yet. In both cases the only true statement is "bound to something
+ * this list cannot describe", so there is no need for a fourth answer.
+ */
+export type AgentBinding =
+	| { kind: 'none' }
+	| { kind: 'known'; agent: Agent }
+	| { kind: 'unknown'; id: string };
+
+export function agentBinding(
+	roster: Agent[],
+	agentId: string | null | undefined
+): AgentBinding {
+	if (!agentId) return { kind: 'none' };
+	const agent = roster.find((a) => a.id === agentId);
+	return agent ? { kind: 'known', agent } : { kind: 'unknown', id: agentId };
+}
+
 // ---------------------------------------------------------------------------
 // System prompt composition
 // ---------------------------------------------------------------------------

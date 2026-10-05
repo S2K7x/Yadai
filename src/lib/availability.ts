@@ -9,7 +9,7 @@
  *
  * That is a lie with consequences, because the wording of those screens is a
  * remedy: "add the /skills volume to docker-compose.yml and restart". Measured
- * on this Pi, `GET /api/skills/files` answers 429 `rate_limit_exceeded` past
+ * on this Pi, `GET /api/skills/files` answers 429 `too_many_requests` past
  * twelve calls in a burst and 500 on a filesystem error (`EACCES: permission
  * denied, scandir`), and the browser mints its own failure — `Connexion
  * perdue.` — the moment a phone drops off the tailnet. All three used to print

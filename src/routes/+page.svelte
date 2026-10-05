@@ -137,8 +137,11 @@
 		// palette can offer them right away; a failure here is silent.
 		void prompts.ensureLoaded();
 		// The roster decorates the sidebar and the header, so it is wanted as
-		// early as the session list; a failure here leaves conversations
-		// unlabelled, nothing more.
+		// early as the session list. A failure here is silent on purpose — the
+		// session list already reports an unreachable server — but it is NOT
+		// harmless: the store records it, and the picker, the panel and the job
+		// form read `agents.loadError` rather than mistake an unread roster for
+		// an empty team.
 		void agents.ensureLoaded();
 		// Not for the settings panel — this is what starts reporting whether the
 		// app is on screen, which decides if a finished turn notifies.
