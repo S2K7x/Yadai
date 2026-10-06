@@ -32,6 +32,7 @@
 	let themeOpen = $state(false);
 	let settingsOpen = $state(false);
 	let approvalsOpen = $state(false);
+	let usageOpen = $state(false);
 	let narrow = $state(false);
 	/** The sidebar instance, so the settings panel can switch its list. */
 	let sidebar = $state<{ showList: (v: 'live' | 'archived' | 'trash') => void } | null>(null);
@@ -62,6 +63,7 @@
 		theme: lazyComponent(() => import('$lib/components/ThemePanel.svelte')),
 		settings: lazyComponent(() => import('$lib/components/SettingsPanel.svelte')),
 		approvals: lazyComponent(() => import('$lib/components/ApprovalsPanel.svelte')),
+		usage: lazyComponent(() => import('$lib/components/UsagePanel.svelte')),
 		shortcuts: lazyComponent(() => import('$lib/components/Shortcuts.svelte'))
 	};
 
@@ -80,6 +82,7 @@
 		if (shortcutsOpen) reveal(panels.shortcuts);
 		if (settingsOpen) reveal(panels.settings);
 		if (approvalsOpen) reveal(panels.approvals);
+		if (usageOpen) reveal(panels.usage);
 	});
 
 	const SUGGESTIONS = [
@@ -262,6 +265,7 @@
 		{ id: 'agents', label: "Équipe d'agents", run: () => (agentsOpen = true) },
 		{ id: 'jobs', label: 'Tâches planifiées', run: () => (jobsOpen = true) },
 		{ id: 'providers', label: 'Providers (clés API et comptes)', run: () => (providersOpen = true) },
+		{ id: 'usage', label: 'Consommation (tokens, coût, outils)', run: () => (usageOpen = true) },
 		{ id: 'export', label: 'Exporter la conversation (markdown)', run: exportMarkdown },
 		{ id: 'reload', label: 'Recharger la conversation', run: () => chat.reload() },
 		...(chat.sessionId
@@ -281,10 +285,21 @@
 	]);
 
 	function onKeydown(event: KeyboardEvent) {
-		// The skills, providers, jobs, agents and theme panels are modal and own
-		// their own Escape while open; letting these shortcuts through would
-		// fire behind them.
-		if (skillsOpen || providersOpen || jobsOpen || agentsOpen || themeOpen) return;
+		// These panels are modal and own their own Escape while open; letting
+		// these shortcuts through would fire behind them — an Escape meant to
+		// close a panel would reach `chat.stop()` and detach a running turn,
+		// which is the hazard point 22 describes for popup menus. Approvals had
+		// been left off this list.
+		if (
+			skillsOpen ||
+			providersOpen ||
+			jobsOpen ||
+			agentsOpen ||
+			themeOpen ||
+			approvalsOpen ||
+			usageOpen
+		)
+			return;
 		const meta = hasMod(event);
 		const target = event.target as HTMLElement | null;
 		const typing =
@@ -566,6 +581,10 @@
 	{@const ApprovalsPanel = panels.approvals.current}
 	<ApprovalsPanel open={approvalsOpen} onclose={() => (approvalsOpen = false)} />
 {/if}
+{#if panels.usage.current}
+	{@const UsagePanel = panels.usage.current}
+	<UsagePanel open={usageOpen} onclose={() => (usageOpen = false)} />
+{/if}
 {#if panels.settings.current}
 	{@const SettingsPanel = panels.settings.current}
 	<SettingsPanel
@@ -579,6 +598,7 @@
 		onopenTheme={() => (themeOpen = true)}
 		onopenShortcuts={() => (shortcutsOpen = true)}
 		onopenApprovals={() => (approvalsOpen = true)}
+		onopenUsage={() => (usageOpen = true)}
 		onshowArchived={() => sidebar?.showList('archived')}
 		onshowTrash={() => sidebar?.showList('trash')}
 	/>

@@ -24,7 +24,8 @@ const PANELS = [
 	'Shortcuts.svelte',
 	'SkillsPanel.svelte',
 	'StatusPanel.svelte',
-	'ThemePanel.svelte'
+	'ThemePanel.svelte',
+	'UsagePanel.svelte'
 ];
 
 const read = (name: string) => readFile(new URL(name, DIR), 'utf8');
@@ -102,7 +103,8 @@ test('every lazily loaded panel is rendered only once its chunk has landed', asy
 		'theme',
 		'shortcuts',
 		'settings',
-		'approvals'
+		'approvals',
+		'usage'
 	]) {
 		assert.ok(
 			source.includes(`{#if panels.${key}.current}`),

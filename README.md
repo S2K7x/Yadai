@@ -81,6 +81,14 @@ de l'application.
   confier à l'un de vos agents une tâche récurrente que Yadai exécute seul —
   horaire choisi dans des menus plutôt qu'écrit en cron, puis modifiable,
   duplicable, lançable tout de suite, en pause ou supprimée
+- **Consommation** (Réglages → « Consommation », ou `⌘K` → « Consommation ») :
+  tokens envoyés et produits, coût estimé, modèles, outils les plus appelés et
+  skills chargés, sur 7, 30 ou 90 jours, avec une barre par jour. Les chiffres
+  sont ceux que Hermes Agent mesure déjà dans sa base de sessions — ils
+  couvrent donc **tout** ce que l'agent a fait, cette interface comme le CLI,
+  Telegram et les tâches planifiées. Un coût à zéro est expliqué (modèle
+  gratuit, ou tarif inconnu de Hermes) plutôt qu'annoncé comme gratuit, et les
+  journées sont celles d'amont : découpées en UTC
 - **Notifications push** (panneau d'état → « Notifications ») : quand un tour se
   termine alors que l'app n'est pas à l'écran, la réponse arrive sur l'iPhone ou
   le desktop, et un tap ouvre la bonne conversation

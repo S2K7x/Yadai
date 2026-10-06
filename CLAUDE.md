@@ -1030,8 +1030,9 @@ point 22.
 
 `Modal.svelte` porte le voile, la carte centrée, la barre de titre (titre,
 sous-titre facultatif, bouton ✕), le pied de page facultatif et la feuille
-téléphone du point 20. Les sept panneaux — État, Skills, Providers, Tâches,
-Agents, Apparence, Raccourcis — ne fournissent que leur contenu :
+téléphone du point 20. Les panneaux — État, Skills, Providers, Tâches, Agents,
+Apparence, Approbations, Consommation, Raccourcis — ne fournissent que leur
+contenu :
 
 ```svelte
 <Modal {open} title="Tâches planifiées" width={620} {onclose}>
@@ -1063,7 +1064,7 @@ propre `role="dialog"`. Les sept copies avaient déjà divergé (84 vs 86 vs 88v
 cible de fermeture à 44 px sur un seul, `env(safe-area-inset-bottom)` oublié
 là où le pied de page le posait déjà) : c'est ce que fait un bloc copié.
 
-**Et aucun de ces sept panneaux n'est chargé au démarrage.** Ils ne sont pas à
+**Et aucun de ces panneaux n'est chargé au démarrage.** Ils ne sont pas à
 l'écran quand l'app s'ouvre, mais importés statiquement ils formaient la plus
 grosse part de ce que le Pi devait télécharger, analyser et compiler avant de
 peindre le premier message. `lazyComponent()` (`src/lib/client/lazy.svelte.ts`)
@@ -2222,6 +2223,86 @@ Raspberry Pi.
 
 Route : `GET /api/status` (champs `system` et `systemError`).
 
+### 36. La consommation : Hermes la mesure déjà, personne ne la lisait
+
+Une ligne de session porte ses compteurs (`input_tokens`, `api_call_count`,
+`estimated_cost_usd`…) et l'entête en affiche le résumé pour la conversation
+ouverte. Ce qui manquait, c'est la question posée **sur l'ensemble** : qu'est-ce
+que cette semaine a consommé, quel modèle a fait le travail, quels outils
+l'agent attrape vraiment. Le gateway ne sait pas répondre — il n'expose aucune
+agrégation —, mais le dashboard oui : `GET /api/analytics/usage?days=N`
+(`hermes_cli/web_server.py`) somme la table `sessions` et passe par
+`InsightsEngine` pour les comptes d'outils et de skills.
+
+**Mesuré sur ce Pi**, dix échantillons par fenêtre, à travers le dashboard :
+**8–16 ms** pour 7, 30 et 90 jours (1,1 ko, 2,1 ko, 3,8 ko de réponse). C'est
+une lecture de `~/.hermes/state.db`, pas un aller-retour vers un fournisseur :
+rien à cacher ici, contrairement au catalogue de modèles (point 26) et
+contrairement à `/api/system/stats`, qui échantillonne le CPU pendant 100 ms
+(point 35). À travers notre route, bout en bout sur l'application construite :
+93 ms au premier appel, **11–18 ms** ensuite.
+
+Trois pièges, tous relevés contre le SQL amont et non supposés :
+
+- **Les journées sont des jours UTC.** La requête groupe sur
+  `date(started_at, 'unixepoch')`, sans argument de fuseau. Les relire en heure
+  locale décalerait chaque barre de quelques heures et rangerait le travail de
+  ce matin sur hier — l'erreur d'un jour que `localDay()` évite dans la sidebar
+  (point 24), rencontrée par l'autre bout. La chaîne du seau est donc formatée
+  **comme l'étiquette qu'elle est déjà**, jamais convertie en instant.
+  `tests/usage.test.ts` rejoue quatre fuseaux, de Kiritimati à Niue.
+- **Une journée sans session est absente de la réponse, pas à zéro.** Six
+  lignes sont revenues pour une fenêtre de 30 jours sur cette machine :
+  dessinées telles qu'elles arrivent, elles se lisent comme six jours
+  consécutifs. `dailyBars()` les pose donc sur un axe continu et comble les
+  trous. L'axe est borné à `jours + 1` seaux — la coupure amont est
+  `now - jours × 86400`, un instant et non un minuit, donc une fenêtre de
+  7 jours touche légitimement 8 jours calendaires — ce qui est aussi ce qui
+  empêche une date corrompue de demander vingt mille barres.
+- **`sessions` compte des sessions Hermes, pas des conversations.** Une
+  compression fait basculer une conversation sur une nouvelle ligne de session
+  (point 23), et le CLI, Telegram et les tâches planifiées créent les leurs.
+  C'est le plan de charge de l'agent entier — la lecture intéressante, à
+  condition que le panneau le dise au lieu de laisser croire qu'il a compté la
+  sidebar. Il le dit.
+
+Deux honnêtetés de plus, dans `src/lib/usage.ts` (pur, testé) :
+
+- **Un coût à zéro est expliqué, jamais présenté comme « gratuit ».**
+  `estimated_cost_usd` vaut 0 aussi bien pour un modèle gratuit que pour un
+  modèle dont Hermes n'a jamais connu le tarif — seuls openrouter / nous /
+  novita portent un catalogue de prix (point 33). Relevé ici : les neuf
+  sessions des 30 derniers jours tournent sur `openrouter/free`, donc le
+  panneau affiche `0 $` **et** la phrase qui dit pourquoi.
+- **Les zéros d'une ligne de modèle sont retirés.** Les deux arrivent
+  vraiment : une ligne de session existe avant son premier appel facturable
+  (`0 appels`), et un modèle purement auxiliaire — vision, compression, fondu
+  en amont par `_merge_aux_into_by_model` — n'incrémente jamais le compteur de
+  sessions (`0 sessions`). Les deux sont apparus sur la fenêtre de 90 jours de
+  cette machine, et la ligne se lisait « 0 appels · 1 sessions ».
+
+La route **ne relaie pas** la réponse amont : celle-ci porte des métadonnées de
+capacités par modèle, un détail par tâche auxiliaire et des horodatages par
+skill que ce panneau ne dessine pas, et relayer une charge utile entière est la
+façon dont une route cesse d'avoir un contrat. `normalizeUsage()` **est** le
+contrat.
+
+Et `reason` sépare les deux manières d'être éteint, parce que les confondre est
+exactement ce que le point 4 du contrat d'erreurs interdit : jeton absent →
+`disabled` (le message peut nommer un remède), jeton refusé ou dashboard
+redémarré → `failed`, relu à l'ouverture suivante. **Vérifié** sur
+l'application construite contre le vrai dashboard : jeton vide → `disabled` ;
+jeton bogus → `failed` avec le message du 401 ; dashboard injoignable →
+`failed` en 177 ms.
+
+Le panneau est chargé à la demande comme les autres (point 21), n'est
+jamais sondé en boucle (lecture à l'ouverture et sur « Actualiser »), et garde
+une réponse par fenêtre : revenir sur une période déjà lue ne coûte rien au Pi.
+
+Route : `GET /api/usage?days=7|30|90` (toute autre valeur retombe sur 30 —
+amont accepterait 1 à 365, et cette route ne doit pas être le moyen de faire
+lire une année de sessions à chaque requête).
+
 ## Événements SSE de `/api/sessions/{id}/chat/stream`
 
 | Événement | Charge utile utile | Traitement UI |
@@ -2337,7 +2418,7 @@ src/
 │   │                  AgentPicker, Markdown, CommandPalette, Icon, Modal (cadre
 │   │                  commun des panneaux), StatusPanel, SkillsPanel,
 │   │                  ProvidersPanel, JobsPanel, AgentsPanel, SettingsPanel, PushSettings,
-│   │                  ThemePanel, Shortcuts, Toasts
+│   │                  ThemePanel, UsagePanel, Shortcuts, Toasts
 │   ├── stores/
 │   │   ├── chat.svelte.ts       tout l'état de conversation (runes Svelte 5)
 │   │   ├── agents.svelte.ts     équipe d'agents personnalisés
@@ -2348,6 +2429,7 @@ src/
 │   │   ├── drafts.svelte.ts     brouillon par conversation (localStorage)
 │   │   ├── push.svelte.ts       abonnement Web Push + report de présence
 │   │   ├── theme.svelte.ts      palette active + cache d'avant-rendu
+│   │   ├── usage.svelte.ts      consommation lue par fenêtre de 7 / 30 / 90 jours
 │   │   └── toast.svelte.ts      notifications dans la page
 │   ├── attach.ts      fichier texte déposé : tri binaire/texte, bornes, bloc
 │   │                  de code inséré dans le message
@@ -2376,6 +2458,8 @@ src/
 │   ├── search.ts      recherche accent-insensible dans un fil, extraits
 │   ├── system.ts      les constantes vitales de la machine : lignes, seuils,
 │   │                  tailles et durée d'allumage
+│   ├── usage.ts       consommation de l'agent : seaux de jours UTC posés sur un
+│   │                  axe continu, parts, et un coût à zéro qui s'explique
 │   ├── providers.ts   groupement des clés par provider, statut des comptes,
 │   │                  machine à états du flux OAuth
 │   ├── sessions.ts    groupement par date, recherche, libellés, usage,

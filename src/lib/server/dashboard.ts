@@ -310,6 +310,21 @@ export const putHermesConfig = (config: Record<string, unknown>) =>
 export const getSystemStats = () =>
 	dashboardJson<SystemStats>('/api/system/stats', { timeoutMs: 5000 });
 
+/**
+ * Tokens, cost, models, tools and skills over the last `days` days.
+ *
+ * A read of `~/.hermes/state.db` — upstream's own SQL sums over the `sessions`
+ * table plus `InsightsEngine` for the tool and skill counts. Measured through
+ * this host's dashboard, ten samples each: 8–16 ms for 7, 30 and 90 days, so
+ * unlike `/api/system/stats` it is cheap. Still a read, so the shared one-try
+ * retry applies.
+ */
+export const getUsageAnalytics = (days: number) =>
+	dashboardJson<unknown>(`/api/analytics/usage?days=${encodeURIComponent(String(days))}`, {
+		retries: 1,
+		timeoutMs: 10_000
+	});
+
 export const getCronDeliveryTargets = () =>
 	dashboardJson<{ targets: { id: string; name?: string; home_target_set?: boolean }[] }>(
 		'/api/cron/delivery-targets',

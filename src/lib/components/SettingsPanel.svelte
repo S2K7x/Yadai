@@ -15,6 +15,7 @@
 		onopenTheme: () => void;
 		onopenShortcuts: () => void;
 		onopenApprovals: () => void;
+		onopenUsage: () => void;
 		onshowArchived: () => void;
 		onshowTrash: () => void;
 	}
@@ -29,6 +30,7 @@
 		onopenTheme,
 		onopenShortcuts,
 		onopenApprovals,
+		onopenUsage,
 		onshowArchived,
 		onshowTrash
 	}: Props = $props();
@@ -110,6 +112,12 @@
 					label: 'Raccourcis clavier',
 					hint: "Tout se pilote sans la souris",
 					run: onopenShortcuts
+				},
+				{
+					icon: 'chart',
+					label: 'Consommation',
+					hint: 'Tokens, coût et outils sur 7, 30 ou 90 jours',
+					run: onopenUsage
 				},
 				{
 					icon: 'activity',
