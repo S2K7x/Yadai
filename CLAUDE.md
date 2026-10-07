@@ -2303,6 +2303,93 @@ Route : `GET /api/usage?days=7|30|90` (toute autre valeur retombe sur 30 —
 amont accepterait 1 à 365, et cette route ne doit pas être le moyen de faire
 lire une année de sessions à chaque requête).
 
+### 37. Une mesure de géométrie se paie une fois par image, pas une fois par événement
+
+Deux endroits de l'app lisent une propriété de mise en page puis la réécrivent :
+le champ du composeur (`height: auto` → `scrollHeight` → `height`, pour grandir
+avec le brouillon) et le fil (`scrollHeight` → `scrollTo`, pour garder une
+réponse en cours à l'écran). Ce sont des **recalculs de mise en page forcés** :
+la lecture ne peut pas être servie depuis l'image précédente dès que quelque
+chose au-dessus a changé, donc le navigateur met tout le document en page sur
+place.
+
+Le composeur était branché sur un **événement** et non sur une **image** — un
+appel par frappe — alors que le résultat ne s'observe qu'une fois par image.
+Une rafale de frappes achetait donc une rafale de mises en page pour rien.
+
+`perFrame()` (`src/lib/client/frame.ts`) est le regroupement : `schedule()` ne
+retient qu'une seule exécution par image, `cancel()` la jette au démontage.
+`requestAnimationFrame` plutôt qu'un minuteur pour trois raisons, dont aucune
+n'est interchangeable :
+
+- Une image est exactement la granularité à laquelle le résultat se voit.
+- Le rappel tourne **avant** le style et la mise en page de cette image-là,
+  donc l'écriture qu'il fait est peinte dans la même image que l'événement qui
+  l'a programmée : le champ grandit avec le caractère qui l'a élargi, sans
+  retard visible.
+- Un rappel programmé page cachée **reste en attente** et s'exécute au retour.
+  Un onglet en arrière-plan ne met donc rien en page, et retombe quand même au
+  bon endroit — ce qu'un minuteur perdu ne donne pas.
+
+Le composeur ajoute une seconde moitié : **le même texte n'est pas mesuré deux
+fois** (`textarea.value === sizedFor`). C'est ce qui rend gratuite la deuxième
+passe du démarrage — une quand le champ se lie, une quand le brouillon de la
+conversation ouverte est repris, sans rien entre les deux qui change la réponse.
+
+**Mesuré sur ce Pi 5**, Chromium headless, contre un faux gateway, fil de
+20 messages, 200 frappes dans le composeur :
+
+| | avant | après |
+|---|---|---|
+| lectures forcées de `scrollHeight` | 200 | 43 |
+| temps passé dans ces lectures | 88 ms | 27 ms |
+| mises en page / recalculs de style | 600 / 601 | 286 / 318 |
+| temps de thread principal | 638 ms | 463 ms |
+
+Et le cas qui coûte vraiment ici — taper **pendant** qu'un tour s'écrit à
+480 caractères/seconde, donc avec le fil qui grandit sous la boîte — le
+défilement du fil garde, lui, ses propres lectures (voir plus bas) :
+
+| | avant | après |
+|---|---|---|
+| lectures forcées / temps | 254 / 95 ms | 94 / 27 ms |
+| mises en page | 608 | 305 |
+| temps de thread principal | 702 ms | 530 ms |
+| temps réel pour les 200 frappes | 998 ms | 820 ms |
+
+Le démarrage perd une de ses deux passes : le temps de mise en page forcée
+attribué à `scrollHeight` sur huit chargements à froid passe de 35 ms à 24 ms —
+mais le total du démarrage reste dans la dispersion entre deux exécutions
+(240 ms → 235 ms), donc ne pas le compter comme un gain.
+
+**Et le fil, lui, reste délibérément sur un microtask.** C'est la moitié de ce
+changement qui a été **essayée, mesurée et annulée**, et ça vaut d'être écrit
+pour que personne ne la refasse :
+
+- Le regroupement marchait : sur 60 s de flux à 480 caractères/seconde, les
+  7 416 `scrollTo` devenaient 3 600 (un par image) et les 3 923 recalculs de
+  style 3 609. Mais **le temps total de thread principal du tour n'a pas
+  bougé** — à la cadence réelle d'une réponse, ces lectures tombaient sur une
+  mise en page que le navigateur venait de faire de toute façon.
+- Et ça **cassait** l'accrochage au bas du fil. Les événements `scroll` sont
+  distribués **avant** les rappels d'image : un défilement reporté à l'image
+  laisse `onScroll` voir le transcript fraîchement remplacé, en déduire un
+  grand écart et dépingler la vue avant que le rappel ne tourne. Mesuré sur ce
+  Pi : ouvrir une conversation depuis la sidebar laissait le fil **en haut**
+  (écart 6 822 px au lieu de 0), quatre fois de suite, alors que le
+  `tick().then()` d'origine donne 0. Le microtask passe avant le navigateur, et
+  c'est tout son intérêt.
+- Un garde-fou « ignorer un `scroll` pendant qu'une image est en attente »
+  ne marche pas non plus : pendant un tour il y a presque toujours une image en
+  attente, donc remonter pour relire ne dépinglerait plus rien — exactement le
+  comportement que la vue épinglée existe pour éviter.
+
+`tests/frame.test.ts` couvre le regroupement (une rafale → une exécution, une
+image → une de plus, un rappel qui se reprogramme n'est pas avalé, `cancel()`
+ne bloque pas la suite), relit le composeur (un `queueMicrotask(autosize)`
+remis remettrait une mise en page forcée par frappe) **et relit la page** pour
+que le défilement du fil reste sur son microtask.
+
 ## Événements SSE de `/api/sessions/{id}/chat/stream`
 
 | Événement | Charge utile utile | Traitement UI |
@@ -2413,6 +2500,7 @@ src/
 │   │   ├── platform.ts  ⌘ vs Ctrl
 │   │   ├── dialog.svelte.ts  focus d'un dialogue : entrée, piège de Tab, retour
 │   │   ├── menu.svelte.ts    clavier d'un menu surgissant : Échap, flèches
+│   │   ├── frame.ts        une mesure de géométrie par image, pas par frappe
 │   │   └── lazy.svelte.ts  composant récupéré à la première utilisation
 │   ├── components/    Sidebar, Message, ToolSteps, Composer, ModelPicker,
 │   │                  AgentPicker, Markdown, CommandPalette, Icon, Modal (cadre
