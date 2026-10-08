@@ -1,3 +1,4 @@
+import { formatCost, formatTokens } from './format.ts';
 import { includesFolded, searchNeedle } from './text.ts';
 import type { HermesSession } from './types';
 
@@ -191,15 +192,20 @@ export function renameSession(
 	return out;
 }
 
-/** Compact token/cost summary for a session, or null when nothing ran yet. */
+/**
+ * Compact token/cost summary for a session, or null when nothing ran yet.
+ *
+ * Formatted by `$lib/format` like every other quantity in the app: this line
+ * used to have its own renderer, which wrote `12.3k ↓ / 4.5k ↑ · $0.0123` next
+ * to a consumption panel saying `12,3 k` and `0,0123 $` about the same
+ * numbers — and which had no million, so a long conversation read `1500.0k`.
+ */
 export function usageSummary(s: HermesSession | undefined): string | null {
 	if (!s) return null;
 	const inTok = s.input_tokens ?? 0;
 	const outTok = s.output_tokens ?? 0;
 	if (!inTok && !outTok) return null;
 	const cost = s.actual_cost_usd ?? s.estimated_cost_usd ?? 0;
-	const tokens = `${fmtTokens(inTok)} ↓ / ${fmtTokens(outTok)} ↑`;
-	return cost > 0 ? `${tokens} · $${cost.toFixed(4)}` : tokens;
+	const tokens = `${formatTokens(inTok)} ↓ / ${formatTokens(outTok)} ↑`;
+	return cost > 0 ? `${tokens} · ${formatCost(cost)}` : tokens;
 }
-
-const fmtTokens = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));

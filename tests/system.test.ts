@@ -1,13 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-	formatBytes,
-	formatNumber,
-	humanizeUptime,
-	machineLine,
-	systemRows,
-	type SystemStats
-} from '../src/lib/system.ts';
+import { humanizeUptime, machineLine, systemRows, type SystemStats } from '../src/lib/system.ts';
 
 /**
  * The host's vital signs, as `GET /api/system/stats` reports them.
@@ -28,30 +21,7 @@ const REAL: SystemStats = {
 	psutil: true
 };
 
-test('bytes read as French sizes, one decimal below ten', () => {
-	assert.equal(formatBytes(8454012928), '7,9 Go');
-	assert.equal(formatBytes(2918973440), '2,7 Go');
-	assert.equal(formatBytes(251420790784), '234 Go');
-	assert.equal(formatBytes(1024), '1 ko');
-	assert.equal(formatBytes(1536), '1,5 ko');
-	// A whole value keeps no trailing zero.
-	assert.equal(formatBytes(2 * 1024 ** 3), '2 Go');
-	assert.equal(formatBytes(512), '512 o');
-	assert.equal(formatBytes(0), '0 o');
-});
-
-test('a missing or nonsensical byte count says so instead of printing NaN', () => {
-	assert.equal(formatBytes(undefined), '—');
-	assert.equal(formatBytes(null), '—');
-	assert.equal(formatBytes(-1), '—');
-	assert.equal(formatBytes(Number.NaN), '—');
-});
-
-test('numbers carry a comma, like every other number on screen', () => {
-	assert.equal(formatNumber(0.291015625), '0,29');
-	assert.equal(formatNumber(3), '3,00');
-	assert.equal(formatNumber(12.5, 1), '12,5');
-});
+// The byte and number formatters moved to `$lib/format`: see tests/format.test.ts.
 
 test('an uptime is coarse, except in the first hour', () => {
 	assert.equal(humanizeUptime(30), "moins d'une minute");

@@ -4,10 +4,10 @@
 	import { shouldLoadPanel } from '$lib/availability';
 	import { skillsStore } from '$lib/stores/skills.svelte';
 	import { relativeTime } from '$lib/sessions';
+	import { formatBytes } from '$lib/format';
 	import {
 		DESCRIPTION_FILE,
 		MAX_SKILL_BYTES,
-		formatBytes,
 		groupSkillFiles,
 		isValidSkillName,
 		skillKey,

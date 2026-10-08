@@ -8,7 +8,7 @@
 	import { prompts } from '$lib/stores/prompts.svelte';
 	import { toasts } from '$lib/stores/toast.svelte';
 	import { matchPrompts } from '$lib/prompts';
-	import { formatBytes } from '$lib/skills';
+	import { formatBytes } from '$lib/format';
 	import {
 		MAX_TEXT_FILE_BYTES,
 		displayName,
@@ -251,7 +251,10 @@
 	async function inlineFile(file: File) {
 		const name = displayName(file.name);
 		if (file.size > MAX_TEXT_FILE_BYTES) {
-			flash(`« ${name} » ignoré : ${formatBytes(file.size)}, au-delà des 512 Ko lisibles d'un coup.`);
+			flash(
+				`« ${name} » ignoré : ${formatBytes(file.size)}, au-delà des ` +
+					`${formatBytes(MAX_TEXT_FILE_BYTES)} lisibles d'un coup.`
+			);
 			return;
 		}
 		let content: string;

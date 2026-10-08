@@ -2,6 +2,7 @@ import { mkdir, readFile, readdir, realpath, rename, stat, unlink, writeFile } f
 import { join, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { SKILLS_DIR } from './config';
+import { formatBytes } from '$lib/format';
 import { proxy } from './respond';
 import { UpstreamError } from './upstream';
 import {
@@ -206,7 +207,7 @@ export async function readSkillFile(ref: SkillRef): Promise<SkillFileContent> {
 	if (info.size > MAX_SKILL_BYTES) {
 		throw new SkillsFsError(
 			413,
-			`Fichier trop volumineux pour l'éditeur (${Math.round(info.size / 1024)} Ko). ` +
+			`Fichier trop volumineux pour l'éditeur (${formatBytes(info.size)}). ` +
 				`Modifiez-le en ligne de commande.`,
 			'skill_too_large'
 		);
@@ -250,7 +251,7 @@ function checkSize(content: string): void {
 	if (utf8Length(content) > MAX_SKILL_BYTES) {
 		throw new SkillsFsError(
 			413,
-			`Contenu trop volumineux (max ${MAX_SKILL_BYTES / 1024} Ko).`,
+			`Contenu trop volumineux (max ${formatBytes(MAX_SKILL_BYTES)}).`,
 			'skill_too_large'
 		);
 	}

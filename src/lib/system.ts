@@ -13,6 +13,8 @@
  * built when its numbers are there and left out otherwise — never guessed.
  */
 
+import { formatBytes, formatNumber } from './format.ts';
+
 /** The payload of `GET /api/system/stats`, with the fields this app reads. */
 export interface SystemStats {
 	hostname?: string;
@@ -37,32 +39,6 @@ export interface SystemRow {
 	/** Second half of the line, when the number needs a scale to mean anything. */
 	detail: string;
 	level: SystemLevel;
-}
-
-/**
- * A byte count, in the units a French reader expects.
- *
- * Powers of 1024, like the disk line the readiness check already prints two
- * rows above: two different conventions in one panel would be worse than the
- * approximation either of them makes.
- */
-export function formatBytes(bytes: number | undefined | null): string {
-	if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes < 0) return '—';
-	const units = ['o', 'ko', 'Mo', 'Go', 'To'];
-	let value = bytes;
-	let unit = 0;
-	while (value >= 1024 && unit < units.length - 1) {
-		value /= 1024;
-		unit += 1;
-	}
-	// One decimal below ten, none above: "7,9 Go" then "234 Go".
-	const rounded = value < 10 && unit > 0 ? value.toFixed(1) : String(Math.round(value));
-	return `${rounded.replace('.', ',').replace(/,0$/, '')} ${units[unit]}`;
-}
-
-/** A number with a comma for a decimal point, and no trailing zero. */
-export function formatNumber(value: number, digits = 2): string {
-	return value.toFixed(digits).replace('.', ',');
 }
 
 /**

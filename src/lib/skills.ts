@@ -188,9 +188,3 @@ export function skillKey(ref: SkillRef): string {
 export function skillLabel(ref: SkillRef): string {
 	return ref.skill ?? `${ref.category} (description)`;
 }
-
-/** Compact file size for the list. */
-export function formatBytes(bytes: number): string {
-	if (bytes < 1024) return `${bytes} o`;
-	return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} Ko`;
-}

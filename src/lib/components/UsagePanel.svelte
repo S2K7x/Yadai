@@ -4,11 +4,10 @@
 	import Icon from './Icon.svelte';
 	import { usage } from '$lib/stores/usage.svelte';
 	import { shouldLoadPanel } from '$lib/availability';
+	import { formatCount, formatTokens } from '$lib/format';
 	import {
 		USAGE_PERIODS,
 		dailyBars,
-		formatCount,
-		formatTokens,
 		modelDetail,
 		hasUsage,
 		costNote,

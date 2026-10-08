@@ -5,7 +5,6 @@ import {
 	MAX_NAME_LENGTH,
 	SKILL_FILE,
 	categoryTemplate,
-	formatBytes,
 	groupSkillFiles,
 	isEditableFile,
 	isValidSkillName,
@@ -211,8 +210,5 @@ test('utf8Length counts bytes, not code units', () => {
 	assert.equal(utf8Length('🙂'), 4);
 });
 
-test('formatBytes stays short', () => {
-	assert.equal(formatBytes(512), '512 o');
-	assert.equal(formatBytes(2048), '2.0 Ko');
-	assert.equal(formatBytes(200_000), '195 Ko');
-});
+// `formatBytes` moved to `$lib/format`, which the status panel already used:
+// see tests/format.test.ts.

@@ -80,7 +80,9 @@ test('usage summary appears only once tokens exist', () => {
 	assert.equal(usageSummary(session({})), null);
 	assert.equal(
 		usageSummary(session({ input_tokens: 21_473, output_tokens: 412, estimated_cost_usd: 0.0123 })),
-		'21.5k ↓ / 412 ↑ · $0.0123'
+		// Written by `$lib/format`, like the consumption panel — this line used to
+		// have its own renderer and its own decimal separator.
+		'21,5 k ↓ / 412 ↑ · 0,0123 $'
 	);
 });
 

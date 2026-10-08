@@ -2210,7 +2210,10 @@ Trois règles dans `src/lib/system.ts` (pur, testé) :
 - **Le disque est délibérément absent** de cette section : le contrôle `disk`
   du gateway l'affiche déjà six lignes plus haut dans le même panneau, et le
   même nombre deux fois se lit comme deux mesures. Pour la même raison les
-  tailles sont en puissances de 1024, comme cette ligne-là.
+  tailles sont en puissances de 1024, comme cette ligne-là — qui passe
+  maintenant par la **même** fonction (`formatBytes`, voir les conventions) au
+  lieu d'une division maison par 1024³ arrondie au gigaoctet entier, laquelle
+  annonçait « 0 Go libres » sur une carte qui avait encore 400 Mo.
 
 Vérifié sur l'application construite, contre les deux amonts : dashboard
 joignable → les quatre lignes ; dashboard arrêté → `system: null`,
@@ -2535,6 +2538,8 @@ src/
 │   ├── agents.ts      agents : bornes, cycles, arbre d'équipe, prompt composé
 │   ├── approvals.ts   tour retombé faute d'approbation, + politique d'approbation
 │   ├── errors.ts      ApiError + codes + `humanizeError`
+│   ├── format.ts      la seule façon dont l'app écrit une quantité : octets,
+│   │                  jetons, comptes, dollars, et la virgule décimale
 │   ├── jobs.ts        horaires cron validés/traduits/composés, état et tri
 │   │                  des tâches, fiche d'agent dans le prompt d'une tâche
 │   ├── models.ts      inventaire /api/model/options : provider d'un modèle,
@@ -2719,6 +2724,20 @@ Points de détail qui comptent :
   « modele » dans la palette trouvait la conversation et le passage, jamais
   l'action « Modèle » posée juste au-dessus. `clip()`, `oneLine()` et
   `slugify()` sont là pour la même raison : ils existaient en double.
+- **Une seule façon d'écrire une quantité**, dans `src/lib/format.ts` :
+  `formatBytes()`, `formatTokens()`, `formatCount()`, `formatCost()`,
+  `formatNumber()`, et le `comma()` privé qui décide seul qu'une décimale
+  s'écrit avec une virgule. Les trois quantités de l'app étaient rendues **deux
+  fois chacune**, selon l'écran : l'entête écrivait `6.1k ↓ / 4.5k ↑ ·
+  $0.0123` quand le panneau Consommation écrivait `6,1 k` et `0,0123 $` des
+  mêmes nombres, et l'éditeur de skills `2.0 Ko` là où l'état de la machine
+  disait `2 ko` — un point décimal dans une interface par ailleurs
+  entièrement en français. Les moitiés perdantes étaient aussi les plus
+  courtes : `fmtTokens` n'avait pas de million (1,5 M s'affichait `1500.0k`)
+  et celle des skills pas de mégaoctet (un fichier de 5 Mo déposé dans le
+  composeur était refusé en annonçant `5120.0 Ko`). `tests/format.test.ts`
+  relit `src/lib/**` pour qu'aucun module ne redéfinisse l'un de ces cinq noms
+  ni ne décide de son côté que le séparateur décimal est une virgule.
 - Thème piloté par des tokens CSS. Les littéraux d'`src/app.css` ne sont que
   le rendu d'avant hydratation ; la source est `src/lib/theme.ts`, appliquée
   en propriétés inline sur `<html>` avec `data-theme` pour le mode. Toute

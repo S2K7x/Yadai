@@ -33,6 +33,8 @@
  * optional because this is JSON we did not write.
  */
 
+import { formatCost, formatCount, formatTokens } from './format.ts';
+
 // ---------------------------------------------------------------------------
 // The upstream payload
 // ---------------------------------------------------------------------------
@@ -367,45 +369,6 @@ export function toolShares(report: UsageReport, limit = 8): ShareRow<UsageTool>[
 	return report.tools
 		.slice(0, Math.max(0, limit))
 		.map((item) => ({ item, share: total > 0 ? item.count / total : 0 }));
-}
-
-// ---------------------------------------------------------------------------
-// Formatting
-// ---------------------------------------------------------------------------
-
-/** A fixed-decimal string, French: no trailing zero, comma for the point. */
-const comma = (text: string) =>
-	(text.includes('.') ? text.replace(/0+$/, '').replace(/\.$/, '') : text).replace('.', ',');
-
-/** A token count, short enough to fit a tile: `53`, `6,1 k`, `671 k`, `2,4 M`. */
-export function formatTokens(value: number): string {
-	if (!Number.isFinite(value) || value < 0) return '—';
-	if (value < 1000) return String(Math.round(value));
-	if (value < 1_000_000) {
-		const k = value / 1000;
-		return `${comma(k < 100 ? k.toFixed(1) : String(Math.round(k)))} k`;
-	}
-	return `${comma((value / 1_000_000).toFixed(2))} M`;
-}
-
-/** An exact count, grouped with non-breaking spaces: `12 345`. */
-export function formatCount(value: number): string {
-	if (!Number.isFinite(value) || value < 0) return '—';
-	return String(Math.round(value)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-}
-
-/**
- * A cost in dollars, French style.
- *
- * Four decimals below a dollar: a turn on a cheap model costs fractions of a
- * cent, and rounding those to `0,00 $` would report "free" about something
- * that is not. Zero stays zero — see `costNote()` for why that is not the same
- * claim.
- */
-export function formatCost(value: number): string {
-	if (!Number.isFinite(value) || value < 0) return '—';
-	if (value === 0) return '0 $';
-	return `${comma(value < 1 ? value.toFixed(4) : value.toFixed(2))} $`;
 }
 
 /**

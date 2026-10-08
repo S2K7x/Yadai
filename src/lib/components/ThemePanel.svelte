@@ -2,6 +2,7 @@
 	import Icon from './Icon.svelte';
 	import Modal from './Modal.svelte';
 	import { theme } from '$lib/stores/theme.svelte';
+	import { formatNumber } from '$lib/format';
 	import {
 		DEFAULT_THEME,
 		PRESETS,
@@ -120,7 +121,7 @@
 				<span class="cname">Accent</span>
 				<span class="cval">{palette.accent}</span>
 				<span class="ratio" class:warn={!accentCheck.ok}>
-					{accentCheck.ratio.toFixed(1)}:1
+					{formatNumber(accentCheck.ratio, 1)}:1
 				</span>
 			</label>
 
@@ -135,7 +136,7 @@
 				<span class="cname">Actions positives</span>
 				<span class="cval">{palette.accent2}</span>
 				<span class="ratio" class:warn={!accent2Check.ok}>
-					{accent2Check.ratio.toFixed(1)}:1
+					{formatNumber(accent2Check.ratio, 1)}:1
 				</span>
 			</label>
 		</div>

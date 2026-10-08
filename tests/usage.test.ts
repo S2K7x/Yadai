@@ -8,9 +8,6 @@ import {
 	dailyBars,
 	dayLabel,
 	emptyReport,
-	formatCost,
-	formatCount,
-	formatTokens,
 	hasUsage,
 	modelDetail,
 	modelShares,
@@ -361,40 +358,8 @@ test("a model's detail line drops zeroes and spells its singulars", () => {
 // Formatting
 // ---------------------------------------------------------------------------
 
-test('a token count stays short enough for a tile', () => {
-	assert.equal(formatTokens(0), '0');
-	assert.equal(formatTokens(53), '53');
-	assert.equal(formatTokens(999), '999');
-	assert.equal(formatTokens(1000), '1 k');
-	assert.equal(formatTokens(6105), '6,1 k');
-	assert.equal(formatTokens(99_900), '99,9 k');
-	assert.equal(formatTokens(670_657), '671 k');
-	assert.equal(formatTokens(2_400_000), '2,4 M');
-	assert.equal(formatTokens(-1), '—');
-	assert.equal(formatTokens(NaN), '—');
-});
-
-test('an exact count is grouped, not abbreviated', () => {
-	assert.equal(formatCount(0), '0');
-	assert.equal(formatCount(36), '36');
-	assert.equal(formatCount(1234), '1 234');
-	assert.equal(formatCount(1234567), '1 234 567');
-	assert.equal(formatCount(NaN), '—');
-});
-
-/**
- * Four decimals below a dollar: a turn on a cheap model costs fractions of a
- * cent, and rounding those to `0,00 $` reports "free" about something that
- * is not.
- */
-test('a cost is never rounded into a false zero', () => {
-	assert.equal(formatCost(0), '0 $');
-	assert.equal(formatCost(0.0004), '0,0004 $');
-	assert.equal(formatCost(0.5), '0,5 $');
-	assert.equal(formatCost(12.5), '12,5 $');
-	assert.equal(formatCost(12.345), '12,35 $');
-	assert.equal(formatCost(-1), '—');
-});
+// The three formatters moved to `$lib/format`, which the session header now
+// shares too: see tests/format.test.ts.
 
 /**
  * `estimated_cost_usd` is zero both for a free model and for one whose price

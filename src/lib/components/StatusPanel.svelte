@@ -5,6 +5,7 @@
 	import { chat } from '$lib/stores/chat.svelte';
 	import { usageSummary } from '$lib/sessions';
 	import { jobState, nextRunLabel, scheduleDisplay, sortJobs } from '$lib/jobs';
+	import { formatBytes } from '$lib/format';
 	import { machineLine, systemRows, type SystemRow } from '$lib/system';
 	import type { IconName } from '$lib/icons';
 	import type { HermesJob } from '$lib/types';
@@ -74,9 +75,15 @@
 	function detail(name: string, check: Record<string, unknown>): string {
 		if (name === 'disk') {
 			const used = check.used_percent as number | undefined;
-			const free = check.free_bytes as number | undefined;
-			const gb = free ? (free / 1024 ** 3).toFixed(0) : null;
-			return [used !== undefined ? `${used}% utilisé` : null, gb ? `${gb} Go libres` : null]
+			// `formatBytes`, not a hand-rolled division by 1024³: the memory row
+			// three lines down already uses it, and rounding to whole gigabytes
+			// printed "0 Go libres" for a card with 400 Mo left.
+			const bytes = check.free_bytes;
+			const free =
+				typeof bytes === 'number' && Number.isFinite(bytes) && bytes >= 0
+					? formatBytes(bytes)
+					: null;
+			return [used !== undefined ? `${used}% utilisé` : null, free ? `${free} libres` : null]
 				.filter(Boolean)
 				.join(' · ');
 		}
