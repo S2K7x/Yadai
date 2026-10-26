@@ -66,7 +66,7 @@
 		<header>
 			<h2>{title}</h2>
 			{#if subtitle}<span class="sub">{@render subtitle()}</span>{/if}
-			<button class="x" onclick={onclose} aria-label="Fermer"><Icon name="close" /></button>
+			<button class="x" onclick={onclose} aria-label="Close"><Icon name="close" /></button>
 		</header>
 
 		{@render children()}

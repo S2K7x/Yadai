@@ -69,6 +69,16 @@ export const AGENT_COLOR_HEX: Record<string, string> = {
 	rose: '#cf6f8a'
 };
 
+/** What a swatch is called on screen. The keys above are stored, never shown. */
+export const AGENT_COLOR_NAMES: Record<string, string> = {
+	ambre: 'Amber',
+	vert: 'Green',
+	azur: 'Azure',
+	indigo: 'Indigo',
+	prune: 'Plum',
+	rose: 'Pink'
+};
+
 /** The colour to paint an agent with — always a real colour. */
 export const agentColor = (agent: Pick<Agent, 'color'>): string =>
 	AGENT_COLOR_HEX[agent.color] ?? AGENT_COLOR_HEX.azur;
@@ -308,11 +318,11 @@ export function composeSystemPrompt(list: Agent[], agentId: string): string {
 	if (!agent) return '';
 
 	// The job goes on its own line rather than into the first sentence: a role
-	// is written as a noun phrase ("Recherche en ligne") as often as a verb
-	// phrase ("Découpe le travail"), and only one of the two reads as an
-	// apposition. Quoting it verbatim also keeps proper nouns intact — folding
-	// the case would turn "sur le Pi" into "sur le pi".
-	const blocks = [`Tu es ${agent.name}.${agent.role ? `\nTon métier : ${agent.role}` : ''}`];
+	// is written as a noun phrase ("Web research") as often as a verb phrase
+	// ("Splits the work"), and only one of the two reads as an apposition.
+	// Quoting it verbatim also keeps proper nouns intact — folding the case
+	// would turn "on the Pi" into "on the pi".
+	const blocks = [`You are ${agent.name}.${agent.role ? `\nYour role: ${agent.role}` : ''}`];
 	if (agent.prompt) blocks.push(agent.prompt);
 
 	const reports = directReports(list, agent);
@@ -325,26 +335,26 @@ export function composeSystemPrompt(list: Agent[], agentId: string): string {
 			? child.children.map((id) => byId.get(id)).filter((a): a is Agent => Boolean(a))
 			: [];
 		if (own.length === 0) return brief;
-		return `${brief}\n\nDirige lui-même : ${own.map((a) => a.name).join(', ')}. Appelle-le avec \`role: "orchestrator"\`.`;
+		return `${brief}\n\nLeads their own team: ${own.map((a) => a.name).join(', ')}. Call them with \`role: "orchestrator"\`.`;
 	});
 
 	blocks.push(
-		'## Ton équipe',
-		"Tu diriges les spécialistes ci-dessous. Quand une tâche relève clairement de l'un d'eux, confie-la-lui avec l'outil `delegate_task` au lieu de la faire toi-même ; sinon, réponds directement.",
+		'## Your team',
+		'You lead the specialists below. When a task clearly belongs to one of them, hand it over with the `delegate_task` tool instead of doing it yourself; otherwise, answer directly.',
 		...cards,
-		'## Comment déléguer',
+		'## How to delegate',
 		[
-			"`delegate_task` lance de vrais sous-agents Yadai. Ils démarrent d'une conversation vide et ne voient RIEN de celle-ci : tout ce qui leur est nécessaire doit tenir dans l'appel.",
+			'`delegate_task` starts real Yadai sub-agents. They begin from an empty conversation and see NOTHING of this one: everything they need must fit in the call.',
 			'',
-			'- `tasks` : la liste des sous-tâches, lancées en parallèle, chacune `{goal, context, role}`. Yadai refuse un appel qui dépasse sa limite de sous-agents simultanés — dans ce cas, réduis le nombre ou fais plusieurs appels.',
-			"- `goal` : la consigne complète du spécialiste, rédigée comme si tu la lui écrivais.",
-			'- `context` : recopie d\'abord sa fiche ci-dessus — c\'est ce qui lui donne son métier — puis ajoute les éléments concrets (fichiers, contraintes, format attendu).',
-			'- `role` : `"leaf"` pour un spécialiste qui exécute lui-même, `"orchestrator"` seulement pour ceux marqués « dirige lui-même ».',
-			'- `output_schema` (optionnel) : un JSON Schema que la réponse de l\'enfant doit valider.',
+			'- `tasks`: the list of sub-tasks, run in parallel, each `{goal, context, role}`. Yadai refuses a call that exceeds its limit of simultaneous sub-agents — if so, reduce the number or make several calls.',
+			'- `goal`: the specialist\'s complete instruction, written as if you were writing to them.',
+			'- `context`: first copy their card above — that is what gives them their role — then add the concrete details (files, constraints, expected format).',
+			'- `role`: `"leaf"` for a specialist who does the work themselves, `"orchestrator"` only for those marked "leads their own team".',
+			'- `output_schema` (optional): a JSON Schema the child\'s answer must validate against.',
 			'',
-			"Ensuite, c'est à toi de lire les résultats, de les recouper et de rédiger la réponse finale : l'utilisateur ne voit pas le travail des sous-agents, seulement le tien.",
+			'Then it is up to you to read the results, cross-check them and write the final answer: the user does not see the sub-agents\' work, only yours.',
 			'',
-			"Coût : chaque sous-agent est un agent Yadai complet sur un Raspberry Pi 5 à quatre cœurs, partagés avec cette conversation. Délègue quand la tâche est vraiment séparable, et préfère deux sous-tâches bien posées à cinq approximatives."
+			'Cost: each sub-agent is a full Yadai agent on a four-core Raspberry Pi 5, shared with this conversation. Delegate when the task is truly separable, and prefer two well-posed sub-tasks to five vague ones.'
 		].join('\n')
 	);
 
@@ -376,25 +386,25 @@ export function validateAgent(list: Agent[], id: string | null, draft: AgentDraf
 	const errors: string[] = [];
 	const name = oneLine(draft.name);
 
-	if (!name) errors.push("Donnez un nom à cet agent.");
-	else if (name.length > MAX_AGENT_NAME) errors.push(`Le nom dépasse ${MAX_AGENT_NAME} caractères.`);
+	if (!name) errors.push('Give this agent a name.');
+	else if (name.length > MAX_AGENT_NAME) errors.push(`The name exceeds ${MAX_AGENT_NAME} characters.`);
 	if (list.some((a) => a.id !== id && a.name.toLowerCase() === name.toLowerCase()))
-		errors.push('Un agent porte déjà ce nom.');
+		errors.push('An agent already has this name.');
 
-	if (!draft.prompt.trim()) errors.push("Le prompt système est vide : sans lui, l'agent n'a pas de personnalité.");
+	if (!draft.prompt.trim()) errors.push('The system prompt is empty: without it, the agent has no personality.');
 	else if (draft.prompt.length > MAX_AGENT_PROMPT)
-		errors.push(`Le prompt dépasse ${MAX_AGENT_PROMPT} caractères.`);
-	if (draft.role.length > MAX_AGENT_ROLE) errors.push(`Le métier dépasse ${MAX_AGENT_ROLE} caractères.`);
+		errors.push(`The prompt exceeds ${MAX_AGENT_PROMPT} characters.`);
+	if (draft.role.length > MAX_AGENT_ROLE) errors.push(`The role exceeds ${MAX_AGENT_ROLE} characters.`);
 
 	if (id === null && list.length >= MAX_AGENTS)
-		errors.push(`Vous avez atteint ${MAX_AGENTS} agents — supprimez-en un d'abord.`);
+		errors.push(`You have reached ${MAX_AGENTS} agents — delete one first.`);
 
 	const children = [...new Set(draft.children)];
 	if (children.length > MAX_AGENT_CHILDREN)
-		errors.push(`Une équipe est limitée à ${MAX_AGENT_CHILDREN} agents pilotés.`);
-	if (id !== null && children.includes(id)) errors.push('Un agent ne peut pas se piloter lui-même.');
+		errors.push(`A team is limited to ${MAX_AGENT_CHILDREN} agents.`);
+	if (id !== null && children.includes(id)) errors.push('An agent cannot lead itself.');
 	if (children.some((c) => !list.some((a) => a.id === c)))
-		errors.push("L'équipe désigne un agent qui n'existe plus.");
+		errors.push('The team points to an agent that no longer exists.');
 
 	// Run the check on the roster the save would produce, so an edit deep in
 	// the tree is caught too — not just a direct A → B → A.
@@ -419,8 +429,8 @@ export function validateAgent(list: Agent[], id: string | null, draft: AgentDraf
 		const cycle = teamCycle(candidate, nextId);
 		if (cycle) {
 			const label = (cid: string) =>
-				cid === nextId ? name || 'cet agent' : (candidate.find((a) => a.id === cid)?.name ?? cid);
-			errors.push(`Boucle dans l'équipe : ${cycle.map(label).join(' → ')}.`);
+				cid === nextId ? name || 'this agent' : (candidate.find((a) => a.id === cid)?.name ?? cid);
+			errors.push(`Loop in the team: ${cycle.map(label).join(' → ')}.`);
 		}
 	}
 
@@ -466,7 +476,7 @@ export function agentFromDraft(
 /** A draft with the same job as `source`, named "… (copie)". */
 export function duplicateDraft(source: Agent): AgentDraft {
 	return {
-		name: clip(`${source.name} (copie)`, MAX_AGENT_NAME),
+		name: clip(`${source.name} (copy)`, MAX_AGENT_NAME),
 		emoji: source.emoji,
 		color: source.color,
 		role: source.role,
@@ -508,48 +518,48 @@ export function starterAgents(now: number): Agent[] {
 	return [
 		make({
 			id: 'generaliste',
-			name: 'Généraliste',
+			name: 'Generalist',
 			emoji: '🧭',
 			color: 'azur',
-			role: 'Assistant polyvalent',
+			role: 'All-round assistant',
 			prompt:
-				"Tu es l'assistant personnel de l'utilisateur, sur son Raspberry Pi. Tu réponds en français, de façon directe et concrète.\n\nTu as un terminal, un navigateur, la mémoire long terme et les skills de Yadai. Sers-t'en plutôt que de deviner : vérifie avant d'affirmer, et dis-le quand tu n'as pas pu vérifier.\n\nVa droit au but. Pas de préambule, pas de résumé de la question. Quand une commande est destructrice, montre-la avant de l'exécuter.",
+				"You are the user's personal assistant, running on their Raspberry Pi. You answer in English, directly and concretely.\n\nYou have a terminal, a browser, long-term memory and Yadai's skills. Use them rather than guessing: check before you claim, and say so when you could not check.\n\nGet to the point. No preamble, no restating the question. When a command is destructive, show it before running it.",
 			model: '',
 			orchestrator: false,
 			children: []
 		}),
 		make({
 			id: 'chef-equipe',
-			name: "Chef d'équipe",
+			name: 'Team lead',
 			emoji: '🎯',
 			color: 'ambre',
-			role: 'Découpe le travail et le confie aux spécialistes',
+			role: 'Splits the work and hands it to the specialists',
 			prompt:
-				"Tu coordonnes une petite équipe. Ton travail est de comprendre la demande, de la découper, et de rassembler les résultats en une réponse unique et lisible.\n\nCommence par reformuler l'objectif en une phrase. Si la demande tient en deux minutes, fais-la toi-même. Sinon, découpe-la en sous-tâches indépendantes et confie chacune au bon spécialiste.\n\nÀ la fin, réponds toi-même : une synthèse en français, avec ce qui est certain, ce qui ne l'est pas, et ce qui reste à faire.",
+				"You coordinate a small team. Your job is to understand the request, split it up, and bring the results together into one clear answer.\n\nStart by restating the goal in one sentence. If the request takes two minutes, do it yourself. Otherwise, split it into independent sub-tasks and give each one to the right specialist.\n\nAt the end, answer yourself: a summary in English, with what is certain, what is not, and what remains to be done.",
 			model: '',
 			orchestrator: true,
 			children: ['chercheur', 'technicien']
 		}),
 		make({
 			id: 'chercheur',
-			name: 'Chercheur',
+			name: 'Researcher',
 			emoji: '🔎',
 			color: 'vert',
-			role: 'Recherche en ligne et synthèse sourcée',
+			role: 'Web research and sourced summaries',
 			prompt:
-				"Tu cherches et tu synthétises. Utilise le navigateur et la recherche web, croise au moins deux sources quand l'information compte, et cite tes liens.\n\nRends toujours : les faits établis, les points incertains, et les sources. Pas d'opinion présentée comme un fait. Si tu ne trouves pas, dis-le au lieu de combler.",
+				"You search and you summarise. Use the browser and web search, cross-check at least two sources when the information matters, and cite your links.\n\nAlways return: the established facts, the uncertain points, and the sources. No opinion presented as fact. If you cannot find it, say so instead of filling the gap.",
 			model: '',
 			orchestrator: false,
 			children: []
 		}),
 		make({
 			id: 'technicien',
-			name: 'Technicien',
+			name: 'Technician',
 			emoji: '🛠️',
 			color: 'indigo',
-			role: 'Diagnostic système, scripts et code sur le Pi',
+			role: 'System diagnostics, scripts and code on the Pi',
 			prompt:
-				"Tu es l'ingénieur système de la maison. Tu lis le code, tu inspectes les conteneurs, les services systemd et les journaux, et tu écris des scripts courts.\n\nMesure avant de conclure : une commande qui prouve vaut mieux qu'une hypothèse. Montre la commande et sa sortie utile.\n\nNe modifie rien d'irréversible sans l'annoncer d'abord. En cas de doute sur une suppression ou un redémarrage, propose la commande au lieu de la lancer.",
+				"You are the household's systems engineer. You read code, inspect containers, systemd services and logs, and write short scripts.\n\nMeasure before concluding: a command that proves beats a hypothesis. Show the command and its useful output.\n\nChange nothing irreversible without announcing it first. When in doubt about a deletion or a restart, propose the command instead of running it.",
 			model: '',
 			orchestrator: false,
 			children: []

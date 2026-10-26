@@ -141,7 +141,7 @@ class SkillsStore {
 			this.saved = content;
 			this.savedOnce = true;
 			this.#merge(entry);
-			toasts.success(`${skillLabel(ref)} enregistré.`);
+			toasts.success(`${skillLabel(ref)} saved.`);
 		} catch (err) {
 			toasts.error(err);
 		} finally {
@@ -158,11 +158,11 @@ class SkillsStore {
 			});
 			this.#merge(entry);
 			if (!this.categories.includes(category)) {
-				this.categories = [...this.categories, category].sort((a, b) => a.localeCompare(b, 'fr'));
+				this.categories = [...this.categories, category].sort((a, b) => a.localeCompare(b, 'en'));
 			}
 			this.selected = null; // force a fresh read of what was written
 			await this.open({ category: entry.category, skill: entry.skill, file: SKILL_FILE });
-			toasts.success(`Skill « ${name} » créé.`);
+			toasts.success(`Skill "${name}" created.`);
 			// The listing may also have gained a DESCRIPTION.md for a new category.
 			this.refresh(true);
 			return true;

@@ -25,10 +25,10 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		return json({ session_id: params.id, agent_id: null });
 	}
 	if (typeof raw !== 'string') {
-		return errorResponse(400, '`agent_id` doit être une chaîne ou null.', 'invalid_body');
+		return errorResponse(400, '`agent_id` must be a string or null.', 'invalid_body');
 	}
 	if (!findAgent(raw)) {
-		return errorResponse(404, "Cet agent n'existe plus.", 'agent_not_found');
+		return errorResponse(404, 'This agent no longer exists.', 'agent_not_found');
 	}
 
 	bindSessionAgent(params.id, raw);

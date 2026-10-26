@@ -105,23 +105,23 @@ export function slugifySkillName(input: string): string {
 export function skillTemplate(name: string, description = ''): string {
 	return `---
 name: ${name}
-description: ${description || 'À compléter — dis en une phrase quand Yadai doit charger ce skill.'}
+description: ${description || 'To fill in — say in one sentence when Yadai should load this skill.'}
 ---
 
 # ${name}
 
-## Quand l'utiliser
+## When to use it
 
-Décris les situations qui déclenchent ce skill.
+Describe the situations that trigger this skill.
 
-## Marche à suivre
+## Steps
 
-1. Première étape.
-2. Deuxième étape.
+1. First step.
+2. Second step.
 
-## Pièges
+## Pitfalls
 
-- Ce qu'il ne faut surtout pas faire.
+- What must not be done.
 `;
 }
 
@@ -129,7 +129,7 @@ Décris les situations qui déclenchent ce skill.
 export function categoryTemplate(category: string): string {
 	return `# ${category}
 
-À compléter : ce que regroupe cette catégorie de skills.
+To fill in: what this category of skills groups together.
 `;
 }
 
@@ -172,9 +172,9 @@ export function groupSkillFiles(entries: SkillFileEntry[], query = ''): SkillCat
 		if (skills.length) result.push({ ...group, skills });
 	}
 
-	result.sort((a, b) => a.category.localeCompare(b.category, 'fr'));
+	result.sort((a, b) => a.category.localeCompare(b.category, 'en'));
 	for (const group of result) {
-		group.skills.sort((a, b) => (a.skill ?? '').localeCompare(b.skill ?? '', 'fr'));
+		group.skills.sort((a, b) => (a.skill ?? '').localeCompare(b.skill ?? '', 'en'));
 	}
 	return result;
 }

@@ -82,7 +82,7 @@
 	}
 
 	function accountAction(provider: OauthProvider): string {
-		return flowKind(provider) === 'external' ? 'Via la CLI' : 'Connecter';
+		return flowKind(provider) === 'external' ? 'Via the CLI' : 'Connect';
 	}
 </script>
 
@@ -91,64 +91,64 @@
 <Modal {open} title="Providers" width={760} fill onclose={close}>
 	{#snippet subtitle()}
 		{#if providersStore.state === 'failed'}
-			liste illisible
+			list unreadable
 		{:else if providersStore.state === 'disabled'}
-			indisponible
+			unavailable
 		{:else}
-			clés et comptes de Yadai · un redémarrage du gateway peut être nécessaire
+			Yadai's keys and accounts · a gateway restart may be needed
 		{/if}
 	{/snippet}
 
 	{#if providersStore.state === 'failed'}
 		<div class="unavailable">
-			<p>Les providers n'ont pas pu être lus.</p>
+			<p>The providers could not be read.</p>
 			<p class="muted small">{providersStore.loadError}</p>
 			<p class="muted small">
-				Le dashboard est peut-être configuré et en parfait état : cet écran dit seulement que
-				la requête a échoué.
+				The dashboard may well be configured and healthy: this screen only says that
+				the request failed.
 			</p>
 			<button onclick={() => providersStore.refresh()} disabled={providersStore.loading}>
-				{providersStore.loading ? 'Lecture…' : 'Réessayer'}
+				{providersStore.loading ? 'Reading…' : 'Retry'}
 			</button>
 		</div>
 	{:else if providersStore.state === 'disabled'}
 		<div class="unavailable">
-			<p>La gestion des providers est indisponible.</p>
+			<p>Provider management is unavailable.</p>
 			<p class="muted small">{providersStore.message}</p>
 			<p class="muted small">
-				Le dashboard de Yadai tourne en service utilisateur
-				(<code>systemctl --user status hermes-dashboard</code>) sur
-				<code>127.0.0.1:9119</code>. Son jeton est
-				<code>HERMES_DASHBOARD_SESSION_TOKEN</code> dans
-				<code>~/.hermes/dashboard.env</code> ; recopiez-le dans
+				The Hermes dashboard runs as a user service
+				(<code>systemctl --user status hermes-dashboard</code>) on
+				<code>127.0.0.1:9119</code>. Its token is
+				<code>HERMES_DASHBOARD_SESSION_TOKEN</code> in
+				<code>~/.hermes/dashboard.env</code>; copy it into
 				<code>HERMES_DASHBOARD_TOKEN</code>.
 			</p>
-			<button onclick={() => providersStore.refresh()}>Réessayer</button>
+			<button onclick={() => providersStore.refresh()}>Retry</button>
 		</div>
 	{:else}
 		<nav class="tabs">
-			<button class:sel={tab === 'keys'} onclick={() => (tab = 'keys')}>Clés API</button>
-			<button class:sel={tab === 'accounts'} onclick={() => (tab = 'accounts')}>Comptes</button>
+			<button class:sel={tab === 'keys'} onclick={() => (tab = 'keys')}>API keys</button>
+			<button class:sel={tab === 'accounts'} onclick={() => (tab = 'accounts')}>Accounts</button>
 			<button class:sel={tab === 'model'} onclick={() => (tab = 'model')}>
-				Modèle par défaut
+				Default model
 			</button>
 		</nav>
 
 		<div class="body">
 			{#if providersStore.loading && providersStore.keys.length === 0}
-				<p class="none">Chargement…</p>
+				<p class="none">Loading…</p>
 			{:else if tab === 'keys'}
 				<div class="tools">
 					<input
 						bind:value={query}
-						placeholder="Filtrer un fournisseur…"
-						aria-label="Filtrer les fournisseurs"
+						placeholder="Filter providers…"
+						aria-label="Filter providers"
 						type="search"
 					/>
 				</div>
 
 				{#if groups.length === 0}
-					<p class="none">Aucun fournisseur ne correspond.</p>
+					<p class="none">No provider matches.</p>
 				{/if}
 
 				{#each groups as group (group.provider)}
@@ -156,7 +156,7 @@
 						<div class="card-head">
 							<span class="name">{group.label}</span>
 							<span class="pill" class:on={isGroupConfigured(group)}>
-								{isGroupConfigured(group) ? 'Configuré' : 'Non configuré'}
+								{isGroupConfigured(group) ? 'Configured' : 'Not configured'}
 							</span>
 						</div>
 						{#each group.keys as entry (entry.key)}
@@ -166,21 +166,21 @@
 									{#if entry.isSet}
 										<span class="redacted">{entry.redacted ?? '••••'}</span>
 									{:else}
-										<span class="muted small">non renseignée</span>
+										<span class="muted small">not set</span>
 									{/if}
 									<span class="spacer"></span>
 									{#if providersStore.editing !== entry.key}
 										<button onclick={() => providersStore.edit(entry.key)}>
-											{entry.isSet ? 'Remplacer' : 'Renseigner'}
+											{entry.isSet ? 'Replace' : 'Set'}
 										</button>
 										{#if entry.isSet}
 											<button
 												class="danger"
 												disabled={providersStore.saving}
 												onclick={() => {
-													if (confirm(`Supprimer ${entry.key} de la configuration de Yadai ?`))
+													if (confirm(`Remove ${entry.key} from Yadai's configuration?`))
 														providersStore.deleteKey(entry.key);
-												}}>Supprimer</button
+												}}>Delete</button
 											>
 										{/if}
 									{/if}
@@ -191,7 +191,7 @@
 										{entry.description}
 										{#if entry.url}
 											· <a href={entry.url} target="_blank" rel="noreferrer noopener">
-												obtenir une clé
+												get a key
 											</a>
 										{/if}
 									</p>
@@ -206,8 +206,8 @@
 											spellcheck="false"
 											autofocus
 											bind:value={providersStore.draft}
-											placeholder="Collez la clé"
-											aria-label={`Valeur de ${entry.key}`}
+											placeholder="Paste the key"
+											aria-label={`Value of ${entry.key}`}
 											onkeydown={(e) => {
 												if (e.key === 'Enter') providersStore.saveKey();
 											}}
@@ -216,24 +216,24 @@
 											disabled={!providersStore.draft.trim() || providersStore.validating}
 											onclick={() => providersStore.validate()}
 										>
-											{providersStore.validating ? 'Vérification…' : 'Vérifier'}
+											{providersStore.validating ? 'Checking…' : 'Check'}
 										</button>
 										<button
 											class="primary"
 											disabled={!providersStore.draft.trim() || providersStore.saving}
 											onclick={() => providersStore.saveKey()}
 										>
-											{providersStore.saving ? 'Enregistrement…' : 'Enregistrer'}
+											{providersStore.saving ? 'Saving…' : 'Save'}
 										</button>
-										<button onclick={() => providersStore.cancelEdit()}>Annuler</button>
+										<button onclick={() => providersStore.cancelEdit()}>Cancel</button>
 									</div>
 									{#if providersStore.validationHint}
 										<p class="muted small">{providersStore.validationHint}</p>
 									{/if}
 									<p class="muted small">
-										La clé est écrite dans <code>~/.hermes/.env</code> par Yadai lui-même, qui
-										met aussi à jour les copies de <code>config.yaml</code>. Elle n'est jamais
-										renvoyée en clair à ce navigateur.
+										The key is written to <code>~/.hermes/.env</code> by Hermes itself, which
+										also updates the copies in <code>config.yaml</code>. It is never
+										sent back in clear text to this browser.
 									</p>
 								{/if}
 							</div>
@@ -246,35 +246,35 @@
 						<div class="card-head">
 							<span class="name">{flow.providerName}</span>
 							{#if flow.phase === 'awaiting'}
-								<span class="pill">expire dans {Math.floor(remaining / 60)} min {remaining % 60}s</span>
+								<span class="pill">expires in {Math.floor(remaining / 60)} min {remaining % 60}s</span>
 							{/if}
 						</div>
 
 						{#if flow.phase === 'awaiting' && flow.kind === 'device_code'}
 							<p>
-								Ouvrez
+								Open
 								<a href={flow.verificationUrl} target="_blank" rel="noreferrer noopener">
 									{flow.verificationUrl}
 								</a>
-								et saisissez ce code :
+								and enter this code:
 							</p>
 							<p class="code">{flow.userCode}</p>
 							<p class="muted small">
-								Cette page interroge Yadai toutes les
-								{Math.round(flow.pollIntervalMs / 1000)} s jusqu'à ce que le fournisseur réponde.
+								This page checks with Hermes every
+								{Math.round(flow.pollIntervalMs / 1000)} s until the provider answers.
 							</p>
 						{:else if flow.phase === 'awaiting'}
 							<p>
-								Ouvrez
+								Open
 								<a href={flow.authUrl} target="_blank" rel="noreferrer noopener">
-									la page d'autorisation
-								</a>, puis collez ici le code affiché à la fin :
+									the authorisation page
+								</a>, then paste the code shown at the end here:
 							</p>
 							<div class="editor">
 								<input
 									bind:value={providersStore.code}
-									placeholder="Code d'autorisation"
-									aria-label="Code d'autorisation"
+									placeholder="Authorisation code"
+									aria-label="Authorisation code"
 									spellcheck="false"
 								/>
 								<button
@@ -282,7 +282,7 @@
 									disabled={!providersStore.code.trim() || providersStore.submitting}
 									onclick={() => providersStore.submitCode()}
 								>
-									{providersStore.submitting ? 'Validation…' : 'Valider'}
+									{providersStore.submitting ? 'Submitting…' : 'Submit'}
 								</button>
 							</div>
 						{:else}
@@ -293,7 +293,7 @@
 
 						<div class="actions">
 							<button onclick={() => providersStore.cancelFlow()}>
-								{flow.phase === 'awaiting' ? 'Annuler' : 'Fermer'}
+								{flow.phase === 'awaiting' ? 'Cancel' : 'Close'}
 							</button>
 						</div>
 					</section>
@@ -304,7 +304,7 @@
 						<div class="card-head">
 							<span class="name">{provider.name}</span>
 							<span class="pill" class:on={isConnected(provider)}>
-								{isConnected(provider) ? 'Connecté' : 'Non connecté'}
+								{isConnected(provider) ? 'Connected' : 'Not connected'}
 							</span>
 						</div>
 						<p class="muted small desc">
@@ -316,8 +316,8 @@
 
 						{#if flowKind(provider) === 'external'}
 							<p class="muted small">
-								Lancez <code>{provider.cli_command}</code> sur le Pi : Yadai ne peut pas
-								piloter ce flux à sa place.
+								Run <code>{provider.cli_command}</code> on the Pi: Yadai cannot
+								drive this flow for you.
 							</p>
 						{/if}
 
@@ -328,7 +328,7 @@
 									disabled={!!flow || providersStore.starting !== null}
 									onclick={() => providersStore.startOauth(provider)}
 								>
-									{providersStore.starting === provider.id ? 'Démarrage…' : accountAction(provider)}
+									{providersStore.starting === provider.id ? 'Starting…' : accountAction(provider)}
 								</button>
 							{/if}
 							{#if isConnected(provider) && provider.disconnectable}
@@ -336,12 +336,12 @@
 									class="danger"
 									disabled={providersStore.saving}
 									onclick={() => {
-										if (confirm(`Déconnecter ${provider.name} ?`)) providersStore.disconnect(provider);
-									}}>Déconnecter</button
+										if (confirm(`Disconnect ${provider.name}?`)) providersStore.disconnect(provider);
+									}}>Disconnect</button
 								>
 							{:else if isConnected(provider) && provider.disconnect_command}
 								<span class="muted small">
-									Pour déconnecter : <code>{provider.disconnect_command}</code>
+									To disconnect: <code>{provider.disconnect_command}</code>
 								</span>
 							{:else if isConnected(provider) && provider.disconnect_hint}
 								<span class="muted small">{provider.disconnect_hint}</span>
@@ -352,30 +352,30 @@
 			{:else}
 				<section class="card">
 					<div class="card-head">
-						<span class="name">Modèle par défaut de Yadai</span>
+						<span class="name">Yadai's default model</span>
 						{#if chat.models}
 							<span class="pill on">{shortModelName(chat.models.model)}</span>
 						{/if}
 					</div>
 					<p class="muted small desc">
-						Écrit dans <code>config.yaml</code> et appliqué aux <strong>nouvelles</strong>
-						discussions. Pour changer le modèle de la conversation ouverte, utilisez le sélecteur
-						en haut de l'écran.
+						Written to <code>config.yaml</code> and applied to <strong>new</strong>
+						chats. To change the model of the open conversation, use the picker
+						at the top of the screen.
 					</p>
 
 					{#if usableProviders.length === 0}
 						<p class="muted small">
-							Aucun fournisseur authentifié pour l'instant. Renseignez une clé ou connectez un
-							compte dans les autres onglets.
+							No authenticated provider yet. Set a key or connect an
+							account in the other tabs.
 						</p>
 					{:else}
 						<div class="editor">
-							<select bind:value={modelProvider} aria-label="Fournisseur">
+							<select bind:value={modelProvider} aria-label="Provider">
 								{#each usableProviders as provider (provider.slug)}
 									<option value={provider.slug}>{provider.name}</option>
 								{/each}
 							</select>
-							<select bind:value={modelName} aria-label="Modèle">
+							<select bind:value={modelName} aria-label="Model">
 								{#each providerModels as model (model)}
 									<option value={model}>{model}</option>
 								{/each}
@@ -385,7 +385,7 @@
 								disabled={!modelName || providersStore.switchingModel}
 								onclick={() => providersStore.setDefaultModel(modelProvider, modelName)}
 							>
-								{providersStore.switchingModel ? 'Application…' : 'Définir par défaut'}
+								{providersStore.switchingModel ? 'Applying…' : 'Set as default'}
 							</button>
 						</div>
 					{/if}
@@ -394,7 +394,7 @@
 						<div class="warn">
 							<p>{providersStore.confirmModel.message}</p>
 							<div class="actions">
-								<button onclick={() => providersStore.dismissConfirm()}>Annuler</button>
+								<button onclick={() => providersStore.dismissConfirm()}>Cancel</button>
 								<button
 									class="primary"
 									disabled={providersStore.switchingModel}
@@ -403,7 +403,7 @@
 											providersStore.confirmModel!.provider,
 											providersStore.confirmModel!.model,
 											true
-										)}>Confirmer quand même</button
+										)}>Confirm anyway</button
 								>
 							</div>
 						</div>

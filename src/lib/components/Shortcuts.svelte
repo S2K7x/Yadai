@@ -15,17 +15,17 @@
 	});
 
 	let rows = $derived([
-		[`${mod} K`, 'Palette : un message de ce fil, une conversation, une action'],
-		[`${mod} ⇧ O`, 'Nouvelle discussion'],
-		[`${mod} /`, 'État du système'],
-		['/', 'Focus sur le composeur (puis / ouvre les skills)'],
-		['↵', 'Envoyer · ⇧↵ retour à la ligne'],
-		['Échap', 'Fermer un panneau, ou détacher le tour en cours'],
-		['?', 'Cette aide']
+		[`${mod} K`, 'Palette: a message in this thread, a conversation, an action'],
+		[`${mod} ⇧ O`, 'New chat'],
+		[`${mod} /`, 'System status'],
+		['/', 'Focus the composer (then / opens skills)'],
+		['↵', 'Send · ⇧↵ new line'],
+		['Esc', 'Close a panel, or detach the running turn'],
+		['?', 'This help']
 	]);
 </script>
 
-<Modal {open} title="Raccourcis clavier" width={460} {onclose}>
+<Modal {open} title="Keyboard shortcuts" width={460} {onclose}>
 	<ul>
 		{#each rows as [keys, label] (label)}
 			<li>

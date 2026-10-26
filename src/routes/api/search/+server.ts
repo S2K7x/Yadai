@@ -18,7 +18,7 @@ export const GET: RequestHandler = ({ url }) => {
 	if (query.length < MIN_QUERY_CHARS) {
 		return errorResponse(
 			400,
-			`Il faut au moins ${MIN_QUERY_CHARS} caractères pour chercher.`,
+			`Type at least ${MIN_QUERY_CHARS} characters to search.`,
 			'invalid_query'
 		);
 	}

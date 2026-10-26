@@ -38,10 +38,10 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	try {
 		body = await request.json();
 	} catch {
-		return sseErrorResponse('Corps JSON invalide.', 400, 'invalid_body');
+		return sseErrorResponse('Invalid JSON body.', 400, 'invalid_body');
 	}
 	if (body.message === undefined || body.message === null || body.message === '') {
-		return sseErrorResponse('Message vide.', 400, 'missing_message');
+		return sseErrorResponse('Empty message.', 400, 'missing_message');
 	}
 
 	// Local cap, checked before Hermes': a Pi 5 struggles long before the
@@ -49,7 +49,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	// whole turn, not only while a browser watches it.
 	if (!tryAcquireTurn()) {
 		return sseErrorResponse(
-			`Déjà ${turnLimit()} tours en cours. Attendez qu'un se termine.`,
+			`Already ${turnLimit()} turns running. Wait for one to finish.`,
 			429,
 			AppErrorCode.RateLimited
 		);
@@ -80,7 +80,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 			// Hermes rejected the turn outright (404 session, 429 cap, 400 on a
 			// bad content part). Read its JSON so the reason survives.
 			const text = await upstream.text().catch(() => '');
-			let message = `Hermes a refusé le tour (HTTP ${upstream.status}).`;
+			let message = `Hermes refused the turn (HTTP ${upstream.status}).`;
 			let code: string | undefined;
 			try {
 				const parsed = JSON.parse(text);
@@ -110,6 +110,6 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	} catch (err) {
 		release();
 		const message = err instanceof Error ? err.message : String(err);
-		return sseErrorResponse(`Hermes injoignable : ${message}`, 502, AppErrorCode.Unreachable);
+		return sseErrorResponse(`Hermes unreachable: ${message}`, 502, AppErrorCode.Unreachable);
 	}
 };

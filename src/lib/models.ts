@@ -94,22 +94,22 @@ export function modelEntries(options: ModelOptions | null): ModelEntry[] {
  */
 export function priceLabel(price: ModelPrice | null | undefined): string | null {
 	if (!price) return null;
-	if (price.free) return 'Gratuit';
+	if (price.free) return 'Free';
 	const parts = [price.input, price.output].filter((v): v is string => Boolean(v) && v !== 'free');
 	if (parts.length === 0) return null;
-	return `${parts.join(' / ')} par Mtok`;
+	return `${parts.join(' / ')} per Mtok`;
 }
 
 /** The same figures spelled out, for the row's tooltip. */
 export function priceDetail(price: ModelPrice | null | undefined): string | null {
 	if (!price) return null;
-	if (price.free) return 'Gratuit, par million de jetons';
+	if (price.free) return 'Free, per million tokens';
 	const parts: string[] = [];
-	if (price.input) parts.push(`Entrée ${price.input}`);
-	if (price.output) parts.push(`Sortie ${price.output}`);
+	if (price.input) parts.push(`Input ${price.input}`);
+	if (price.output) parts.push(`Output ${price.output}`);
 	if (price.cache) parts.push(`Cache ${price.cache}`);
 	if (parts.length === 0) return null;
-	return `${parts.join(' · ')}, par million de jetons`;
+	return `${parts.join(' · ')}, per million tokens`;
 }
 
 /**

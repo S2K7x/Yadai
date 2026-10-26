@@ -2700,7 +2700,14 @@ Points de détail qui comptent :
   de rendu serveur à payer sur un Pi.
 - **Aucun appel direct à Hermes depuis un composant** — tout passe par
   `/api/*`.
-- Interface en **français**.
+- Interface en **anglais**. Elle a été en français jusqu'en octobre 2026 ;
+  toute chaîne affichée, tout message d'erreur renvoyé par une route, tout
+  libellé d'accessibilité s'écrit désormais en anglais (dates en `en-GB` :
+  `17 Oct`, `10:33`). Ce fichier reste en français — il s'adresse aux
+  développeurs, pas à l'écran. Deux exceptions délibérées : le marqueur amont
+  `Asking the user for approval` (point 8) n'est pas à nous, et les
+  identifiants stockés (`generaliste`, `ambre`, `terracotta`…) ne se
+  traduisent pas — seul leur libellé à l'écran a changé.
 - Les tests (`tests/*.test.ts`) tournent sous `node --test` avec le
   type-stripping natif : ils importent les sources par leur chemin `.ts`, sans
   étape de build. N'y mettez que de la logique pure (pas de DOM) — c'est
@@ -2726,18 +2733,17 @@ Points de détail qui comptent :
   `slugify()` sont là pour la même raison : ils existaient en double.
 - **Une seule façon d'écrire une quantité**, dans `src/lib/format.ts` :
   `formatBytes()`, `formatTokens()`, `formatCount()`, `formatCost()`,
-  `formatNumber()`, et le `comma()` privé qui décide seul qu'une décimale
-  s'écrit avec une virgule. Les trois quantités de l'app étaient rendues **deux
+  `formatNumber()`, avec le point décimal et les unités anglaises (`7.9 GB`,
+  `6.1k`, `$0.0123`, `12,345`). Les trois quantités de l'app étaient rendues **deux
   fois chacune**, selon l'écran : l'entête écrivait `6.1k ↓ / 4.5k ↑ ·
   $0.0123` quand le panneau Consommation écrivait `6,1 k` et `0,0123 $` des
   mêmes nombres, et l'éditeur de skills `2.0 Ko` là où l'état de la machine
-  disait `2 ko` — un point décimal dans une interface par ailleurs
-  entièrement en français. Les moitiés perdantes étaient aussi les plus
+  disait `2 ko` — deux conventions dans la même interface. Les moitiés perdantes étaient aussi les plus
   courtes : `fmtTokens` n'avait pas de million (1,5 M s'affichait `1500.0k`)
   et celle des skills pas de mégaoctet (un fichier de 5 Mo déposé dans le
   composeur était refusé en annonçant `5120.0 Ko`). `tests/format.test.ts`
   relit `src/lib/**` pour qu'aucun module ne redéfinisse l'un de ces cinq noms
-  ni ne décide de son côté que le séparateur décimal est une virgule.
+  ni ne décide de son côté du séparateur décimal.
 - Thème piloté par des tokens CSS. Les littéraux d'`src/app.css` ne sont que
   le rendu d'avant hydratation ; la source est `src/lib/theme.ts`, appliquée
   en propriétés inline sur `<html>` avec `data-theme` pour le mode. Toute

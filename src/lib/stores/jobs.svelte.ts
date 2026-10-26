@@ -110,7 +110,7 @@ class JobsStore {
 				timeoutMs: 20_000
 			});
 			await this.refresh(true);
-			toasts.success(`Tâche « ${input.name} » planifiée.`);
+			toasts.success(`Task "${input.name}" scheduled.`);
 			return true;
 		} catch (err) {
 			toasts.error(err);
@@ -138,7 +138,7 @@ class JobsStore {
 				timeoutMs: 20_000
 			});
 			await this.refresh(true);
-			toasts.success('Tâche enregistrée.');
+			toasts.success('Task saved.');
 			return true;
 		} catch (err) {
 			toasts.error(err);
@@ -171,7 +171,7 @@ class JobsStore {
 				timeoutMs: 20_000
 			});
 			await this.refresh(true);
-			toasts.success("Fiche de l'agent remise à jour sur cette tâche.");
+			toasts.success("Agent card refreshed on this task.");
 		} catch (err) {
 			toasts.error(err);
 		} finally {
@@ -190,7 +190,7 @@ class JobsStore {
 			});
 			await this.refresh(true);
 			if (action === 'run') {
-				toasts.success('Tâche lancée — le résultat suivra sa règle de livraison.');
+				toasts.success('Task started — the result will follow its delivery rule.');
 			}
 		} catch (err) {
 			toasts.error(err);
@@ -205,7 +205,7 @@ class JobsStore {
 		try {
 			await api(`/api/jobs/${encodeURIComponent(id)}`, { method: 'DELETE', timeoutMs: 15_000 });
 			this.jobs = (this.jobs ?? []).filter((job) => job.id !== id);
-			toasts.success('Tâche supprimée.');
+			toasts.success('Task deleted.');
 		} catch (err) {
 			toasts.error(err);
 			await this.refresh(true);

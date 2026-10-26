@@ -1,14 +1,14 @@
 {
 	"name": "Yadai",
 	"short_name": "Yadai",
-	"description": "Yadai — interface web privée pour Hermes Agent",
+	"description": "Yadai — a private web interface for Hermes Agent",
 	"start_url": "/",
 	"scope": "/",
 	"display": "standalone",
 	"orientation": "portrait-primary",
 	"background_color": "#141312",
 	"theme_color": "#141312",
-	"lang": "fr",
+	"lang": "en",
 	"icons": [
 		{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
 		{ "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },

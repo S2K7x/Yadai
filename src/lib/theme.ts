@@ -58,7 +58,7 @@ export const PRESETS: ThemePreset[] = [
 	{
 		id: 'terracotta',
 		name: 'Terracotta',
-		hint: 'Crème et orange, panneaux flottants',
+		hint: 'Cream and orange, floating panels',
 		dark: {
 			bg: '#141312',
 			surface: '#221f1c',
@@ -86,8 +86,8 @@ export const PRESETS: ThemePreset[] = [
 	},
 	{
 		id: 'ardoise',
-		name: 'Ardoise',
-		hint: "La palette d'origine de l'app",
+		name: 'Slate',
+		hint: "The app's original palette",
 		dark: {
 			bg: '#1c1b19',
 			surface: '#262523',
@@ -116,7 +116,7 @@ export const PRESETS: ThemePreset[] = [
 	{
 		id: 'nocturne',
 		name: 'Nocturne',
-		hint: 'Bleu profond, accent indigo',
+		hint: 'Deep blue, indigo accent',
 		dark: {
 			bg: '#0f1117',
 			surface: '#191c25',
@@ -144,8 +144,8 @@ export const PRESETS: ThemePreset[] = [
 	},
 	{
 		id: 'verger',
-		name: 'Verger',
-		hint: 'Vert forêt et miel',
+		name: 'Orchard',
+		hint: 'Forest green and honey',
 		dark: {
 			bg: '#101410',
 			surface: '#1b211b',
@@ -191,8 +191,8 @@ export const PRESETS: ThemePreset[] = [
 	// ---------------------------------------------------------------------
 	{
 		id: 'corail',
-		name: 'Corail',
-		hint: 'Corail chaud, encre bleu nuit',
+		name: 'Coral',
+		hint: 'Warm coral, midnight-blue ink',
 		dark: {
 			bg: '#1d1718',
 			surface: '#2f2627',
@@ -220,8 +220,8 @@ export const PRESETS: ThemePreset[] = [
 	},
 	{
 		id: 'creme',
-		name: 'Crème',
-		hint: 'Papier crème et sauge',
+		name: 'Cream',
+		hint: 'Cream paper and sage',
 		dark: {
 			bg: '#1a1a1a',
 			surface: '#2b2a2a',
@@ -249,8 +249,8 @@ export const PRESETS: ThemePreset[] = [
 	},
 	{
 		id: 'pinede',
-		name: 'Pinède',
-		hint: 'Vert sapin profond, accent ciel',
+		name: 'Pinewood',
+		hint: 'Deep fir green, sky accent',
 		dark: {
 			bg: '#0f1416',
 			surface: '#1a2124',
@@ -278,8 +278,8 @@ export const PRESETS: ThemePreset[] = [
 	},
 	{
 		id: 'lagune',
-		name: 'Lagune',
-		hint: 'Sarcelle et bleu ciel',
+		name: 'Lagoon',
+		hint: 'Teal and sky blue',
 		dark: {
 			bg: '#101617',
 			surface: '#1c2426',
@@ -307,8 +307,8 @@ export const PRESETS: ThemePreset[] = [
 	},
 	{
 		id: 'brume',
-		name: 'Brume',
-		hint: 'Bleu poussière et menthe',
+		name: 'Mist',
+		hint: 'Dusty blue and mint',
 		dark: {
 			bg: '#15191c',
 			surface: '#23282d',
@@ -336,8 +336,8 @@ export const PRESETS: ThemePreset[] = [
 	},
 	{
 		id: 'abricot',
-		name: 'Abricot',
-		hint: 'Abricot doux et corail',
+		name: 'Apricot',
+		hint: 'Soft apricot and coral',
 		dark: {
 			bg: '#1d1c19',
 			surface: '#302c29',
@@ -365,8 +365,8 @@ export const PRESETS: ThemePreset[] = [
 	},
 	{
 		id: 'framboise',
-		name: 'Framboise',
-		hint: 'Rose framboise et abricot',
+		name: 'Raspberry',
+		hint: 'Raspberry pink and apricot',
 		dark: {
 			bg: '#1b1519',
 			surface: '#2c2329',
@@ -394,8 +394,8 @@ export const PRESETS: ThemePreset[] = [
 	},
 	{
 		id: 'menthe',
-		name: 'Menthe',
-		hint: 'Menthe claire, accent outremer',
+		name: 'Mint',
+		hint: 'Light mint, ultramarine accent',
 		dark: {
 			bg: '#171d1d',
 			surface: '#262e2e',
@@ -423,8 +423,8 @@ export const PRESETS: ThemePreset[] = [
 	},
 	{
 		id: 'ambre',
-		name: 'Ambre',
-		hint: 'Ardoise bleu nuit et jaune ambre',
+		name: 'Amber',
+		hint: 'Midnight slate and amber yellow',
 		dark: {
 			bg: '#111316',
 			surface: '#1d1f24',
@@ -452,8 +452,8 @@ export const PRESETS: ThemePreset[] = [
 	},
 	{
 		id: 'dragee',
-		name: 'Dragée',
-		hint: 'Rose dragée et vert sarcelle',
+		name: 'Blush',
+		hint: 'Sugared-almond pink and teal',
 		dark: {
 			bg: '#1c191d',
 			surface: '#2e292e',
@@ -481,8 +481,8 @@ export const PRESETS: ThemePreset[] = [
 	},
 	{
 		id: 'brique',
-		name: 'Brique',
-		hint: 'Terre cuite brûlée et orange',
+		name: 'Brick',
+		hint: 'Burnt terracotta and orange',
 		dark: {
 			bg: '#181313',
 			surface: '#271f20',
@@ -510,8 +510,8 @@ export const PRESETS: ThemePreset[] = [
 	},
 	{
 		id: 'outremer',
-		name: 'Outremer',
-		hint: 'Bleu outremer et ciel',
+		name: 'Ultramarine',
+		hint: 'Ultramarine and sky',
 		dark: {
 			bg: '#101219',
 			surface: '#1b1e29',

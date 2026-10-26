@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { agents } from '$lib/stores/agents.svelte';
 	import { chat } from '$lib/stores/chat.svelte';
-	import { agentColor, agentInitial, directReports } from '$lib/agents';
+	import { agentColor, directReports } from '$lib/agents';
 	import { menuKeydown } from '$lib/client/menu.svelte';
 
 	interface Props {
@@ -49,12 +49,11 @@
 		}}
 		aria-haspopup="true"
 		aria-expanded={open}
-		aria-label={active ? `Agent : ${active.name}` : 'Agent : aucun, prompt par défaut de Yadai'}
-		title={active ? `Agent : ${active.name}` : 'Aucun agent — prompt par défaut de Yadai'}
+		aria-label={active ? `Agent: ${active.name}` : "Agent: none, Yadai's default prompt"}
+		title={active ? `Agent: ${active.name}` : "No agent — Yadai's default prompt"}
 	>
 		<span class="dot"></span>
 		<span class="label">{active ? active.name : 'Agent'}</span>
-		<span class="mini">{active ? agentInitial(active) : 'Agent'}</span>
 		<span class="chev" aria-hidden="true">▾</span>
 	</button>
 
@@ -64,15 +63,15 @@
 		<div class="menu" bind:this={menu}>
 			<p class="hint">
 				{#if chat.sessionId}
-					L'agent choisi prend la main sur cette conversation dès le prochain message.
+					The chosen agent takes over this conversation from the next message.
 				{:else}
-					L'agent choisi démarrera la prochaine discussion.
+					The chosen agent will start the next chat.
 				{/if}
 			</p>
 			<div class="items">
 				<button class:sel={!chat.activeAgentId} onclick={() => choose('')}>
-					<span class="n">Sans agent</span>
-					<span class="j">prompt par défaut de Yadai</span>
+					<span class="n">No agent</span>
+					<span class="j">Yadai's default prompt</span>
 				</button>
 				{#each agents.items as agent (agent.id)}
 					<button
@@ -87,10 +86,10 @@
 			</div>
 			{#if reports.length > 0}
 				<p class="hint team">
-					{active?.name} peut déléguer à {reports.map((a) => a.name).join(', ')}.
+					{active?.name} can delegate to {reports.map((a) => a.name).join(', ')}.
 				</p>
 			{/if}
-			<button class="manage" onclick={() => { close(); onmanage(); }}>Gérer l'équipe…</button>
+			<button class="manage" onclick={() => { close(); onmanage(); }}>Manage team…</button>
 		</div>
 	{/if}
 </div>
@@ -131,25 +130,11 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
-	.mini {
-		display: none;
-	}
 	.chev {
 		font-size: 9px;
 	}
-	/* The header carries two pickers plus three icons; on a phone the agent
-	   shrinks to its emoji so the conversation title keeps some room. */
-	@media (max-width: 700px) {
-		.trigger {
-			padding: 7px 10px;
-		}
-		.label {
-			display: none;
-		}
-		.mini {
-			display: inline;
-		}
-	}
+	/* The phone header gives the pickers a row of their own, so the agent
+	   keeps its name there instead of shrinking to an initial. */
 	/* Touch: a header control is as much a target as any other, and these two
 	   were measured at 34px tall on a phone. */
 	@media (max-width: 820px) {
@@ -242,6 +227,27 @@
 		.items button,
 		.manage {
 			min-height: 44px;
+		}
+	}
+	/* Phone: a bottom sheet, not a dropdown. The chip sits on the header's
+	   second row, wherever the title left it; a sheet is anchored to the
+	   screen instead, within reach of a thumb, and wide enough for a model
+	   id and its price. */
+	@media (max-width: 820px) {
+		.scrim {
+			background: var(--scrim);
+		}
+		.menu {
+			position: fixed;
+			left: 8px;
+			right: 8px;
+			top: auto;
+			bottom: calc(8px + env(safe-area-inset-bottom));
+			width: auto;
+			padding: 12px;
+		}
+		.items {
+			max-height: 52dvh;
 		}
 	}
 </style>

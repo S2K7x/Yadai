@@ -15,10 +15,10 @@ import { toasts } from './toast.svelte';
 
 /** Why a save was refused, said in French. */
 const REASONS: Record<PromptWriteRefusal, string> = {
-	unloaded: "Bibliothèque non chargée : impossible d'écrire sans risquer d'effacer les prompts déjà enregistrés.",
-	empty: "Rien à enregistrer : le message est vide.",
-	duplicate: 'Ce prompt est déjà enregistré.',
-	full: `Bibliothèque pleine (${MAX_PROMPTS} prompts) — supprimez-en un d'abord.`
+	unloaded: "Library not loaded: cannot write without risking erasing the prompts already saved.",
+	empty: 'Nothing to save: the message is empty.',
+	duplicate: 'This prompt is already saved.',
+	full: `Library full (${MAX_PROMPTS} prompts) — delete one first.`
 };
 
 interface PromptsPayload {
@@ -128,7 +128,7 @@ class PromptStore {
 		if (!result.ok) {
 			if (result.reason === 'unloaded') {
 				toasts.push('error', REASONS.unloaded, {
-					action: { label: 'Réessayer', run: () => void this.reload() }
+					action: { label: 'Retry', run: () => void this.reload() }
 				});
 			} else {
 				toasts.info(REASONS[result.reason]);

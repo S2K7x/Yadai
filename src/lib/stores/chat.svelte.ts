@@ -258,7 +258,7 @@ class ChatStore {
 			this.version = res.health?.version ?? '';
 			this.features = res.capabilities?.features ?? {};
 			if (wasConnected === false) {
-				toasts.success('Connexion à Hermes rétablie.');
+				toasts.success('Connection to Hermes restored.');
 				// State may have moved on while we were blind.
 				this.refreshSessions();
 				this.#catalog = this.refreshCatalog().catch(() => undefined);
@@ -335,7 +335,7 @@ class ChatStore {
 				}
 			}
 		} catch (err) {
-			toasts.error(err, { label: 'Réessayer', run: () => this.refreshSessions() });
+			toasts.error(err, { label: 'Retry', run: () => this.refreshSessions() });
 		} finally {
 			this.loadingSessions = false;
 		}
@@ -358,7 +358,7 @@ class ChatStore {
 			this.archivedSessions = res.data ?? [];
 			this.archivedTruncated = res.truncated === true;
 		} catch (err) {
-			toasts.error(err, { label: 'Réessayer', run: () => this.refreshArchived() });
+			toasts.error(err, { label: 'Retry', run: () => this.refreshArchived() });
 		} finally {
 			this.loadingArchived = false;
 		}
@@ -374,7 +374,7 @@ class ChatStore {
 			this.trashedSessions = res.data ?? [];
 			this.trashTruncated = res.truncated === true;
 		} catch (err) {
-			toasts.error(err, { label: 'Réessayer', run: () => this.refreshTrash() });
+			toasts.error(err, { label: 'Retry', run: () => this.refreshTrash() });
 		} finally {
 			this.loadingTrash = false;
 		}
@@ -453,7 +453,7 @@ class ChatStore {
 				const applied = res.runtime?.model || model;
 				this.#patchLocal(id, { model: applied });
 				toasts.success(
-					`Cette conversation utilise ${shortModelName(applied)} à partir du prochain message.`
+					`This conversation uses ${shortModelName(applied)} from the next message.`
 				);
 			}
 		});
@@ -509,8 +509,8 @@ class ChatStore {
 			accepted: () => {
 				toasts.success(
 					effort === DEFAULT_REASONING
-						? 'Effort de réflexion : réglage de Hermes, à partir du prochain message.'
-						: `Effort de réflexion : ${reasoningLabel(effort)}, à partir du prochain message.`
+						? 'Thinking effort: Hermes default, from the next message.'
+						: `Thinking effort: ${reasoningLabel(effort)}, from the next message.`
 				);
 			}
 		});
@@ -560,9 +560,9 @@ class ChatStore {
 				this.sessions = this.sessions.filter((s) => s.id !== id);
 				this.archivedSessions = this.archivedSessions.filter((s) => s.id !== id);
 				this.sessionId = null;
-				toasts.info("Cette conversation n'existe plus.");
+				toasts.info('This conversation no longer exists.');
 			} else {
-				toasts.error(err, { label: 'Réessayer', run: () => this.openSession(id) });
+				toasts.error(err, { label: 'Retry', run: () => this.openSession(id) });
 			}
 		} finally {
 			this.loadingHistory = false;
@@ -625,7 +625,7 @@ class ChatStore {
 				method: 'PATCH',
 				body: JSON.stringify({ archived })
 			});
-			toasts.success(archived ? 'Conversation archivée.' : 'Conversation désarchivée.');
+			toasts.success(archived ? 'Conversation archived.' : 'Conversation unarchived.');
 		} catch (err) {
 			this.#placeSession(session, !archived);
 			toasts.error(err);
@@ -664,8 +664,8 @@ class ChatStore {
 		}
 		try {
 			await api(`/api/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' });
-			toasts.push('success', 'Conversation dans la corbeille.', {
-				action: { label: 'Annuler', run: () => void this.restoreSession(id) }
+			toasts.push('success', 'Conversation moved to trash.', {
+				action: { label: 'Undo', run: () => void this.restoreSession(id) }
 			});
 		} catch (err) {
 			// A 404 means it was already gone — the optimistic removal was right.
@@ -687,9 +687,9 @@ class ChatStore {
 			const session = res.session;
 			if (session?.archived) this.archivedSessions = [session, ...this.archivedSessions];
 			else await this.refreshSessions();
-			toasts.success('Conversation restaurée.');
+			toasts.success('Conversation restored.');
 		} catch (err) {
-			toasts.error(err, { label: 'Réessayer', run: () => void this.restoreSession(id) });
+			toasts.error(err, { label: 'Retry', run: () => void this.restoreSession(id) });
 		}
 	}
 
@@ -706,7 +706,7 @@ class ChatStore {
 		drafts.clear(id);
 		try {
 			await api(`/api/sessions/${encodeURIComponent(id)}?purge=true`, { method: 'DELETE' });
-			toasts.success('Conversation supprimée définitivement.');
+			toasts.success('Conversation deleted forever.');
 		} catch (err) {
 			if (err instanceof ApiError && err.code === AppErrorCode.SessionGone) return;
 			this.trashedSessions = snapshot;
@@ -724,7 +724,7 @@ class ChatStore {
 			);
 			await this.refreshSessions();
 			await this.openSession(res.session.id);
-			toasts.success('Branche créée.');
+			toasts.success('Branch created.');
 		} catch (err) {
 			toasts.error(err);
 		}
@@ -782,8 +782,8 @@ class ChatStore {
 		this.detached = true;
 		assistant.detached = 'truncated';
 		for (const step of assistant.steps) if (step.status === 'running') step.status = 'done';
-		toasts.push('error', "Le flux s'est interrompu avant la fin du tour.", {
-			action: { label: 'Recharger', run: () => this.reload() }
+		toasts.push('error', 'The stream stopped before the turn finished.', {
+			action: { label: 'Reload', run: () => this.reload() }
 		});
 	}
 
@@ -871,15 +871,15 @@ class ChatStore {
 				body: JSON.stringify({ message: payload }),
 				signal: this.#abort.signal
 			});
-			if (!res.body) throw new Error('Réponse sans corps.');
+			if (!res.body) throw new Error('Response without a body.');
 			if (!(await this.#consume(res.body, assistant))) this.#truncated(assistant);
 		} catch (err) {
 			if ((err as Error)?.name !== 'AbortError') {
 				assistant.error = err instanceof Error ? err.message : String(err);
 				// Losing the socket mid-turn does not stop the agent, so the
 				// answer is probably still coming — offer to fetch it.
-				toasts.push('error', 'La connexion au flux a été perdue.', {
-					action: { label: 'Recharger', run: () => this.reload() }
+				toasts.push('error', 'The connection to the stream was lost.', {
+					action: { label: 'Reload', run: () => this.reload() }
 				});
 				this.connected = false;
 				this.#scheduleHealth();
@@ -963,7 +963,10 @@ class ChatStore {
 
 			case 'tool.started':
 				assistant.steps.push({
-					key: `${data.tool_name}:${data.seq}`,
+					// `seq` is on every upstream frame; the index is only a fallback
+					// so a frame without one cannot mint a duplicate key, which
+					// Svelte treats as a fatal error for the whole thread.
+					key: `${data.tool_name}:${data.seq ?? `i${assistant.steps.length}`}`,
 					tool_name: data.tool_name || 'tool',
 					status: 'running',
 					preview: data.preview,
@@ -986,7 +989,7 @@ class ChatStore {
 					step.ended_at = data.ts ?? Date.now() / 1000;
 				} else {
 					assistant.steps.push({
-						key: `${data.tool_name}:${data.seq}`,
+						key: `${data.tool_name}:${data.seq ?? `i${assistant.steps.length}`}`,
 						tool_name: data.tool_name || 'tool',
 						status,
 						result: data.preview,
@@ -1011,12 +1014,12 @@ class ChatStore {
 				break;
 
 			case 'error': {
-				const err = new ApiError(data.status || 500, data.message || 'Erreur inconnue', data.code);
+				const err = new ApiError(data.status || 500, data.message || 'Unknown error', data.code);
 				assistant.error = err.message;
 				// A refused turn (429, bad payload) never started, so replaying
 				// it is safe and is what the user wants.
 				const canReplay = err.status === 429 || err.status >= 500;
-				toasts.error(err, canReplay ? { label: 'Renvoyer', run: () => this.resend() } : undefined);
+				toasts.error(err, canReplay ? { label: 'Resend', run: () => this.resend() } : undefined);
 				break;
 			}
 		}
@@ -1027,13 +1030,13 @@ class ChatStore {
 	/** Render the open conversation as a markdown document. */
 	toMarkdown(): string {
 		const session = this.current;
-		const lines: string[] = [`# ${session?.title || 'Conversation Hermes'}`, ''];
-		if (session?.model) lines.push(`_Modèle : ${session.model}_`, '');
+		const lines: string[] = [`# ${session?.title || 'Yadai conversation'}`, ''];
+		if (session?.model) lines.push(`_Model: ${session.model}_`, '');
 		for (const msg of this.messages) {
 			lines.push(msg.role === 'user' ? '## Vous' : '## Hermes', '');
 			if (msg.steps.length) {
 				lines.push(
-					`<details><summary>${msg.steps.length} étape(s) d'agent</summary>`,
+					`<details><summary>${msg.steps.length} agent step(s)</summary>`,
 					'',
 					...msg.steps.map((s) => `- \`${s.tool_name}\` — ${s.status}`),
 					'',
@@ -1051,7 +1054,7 @@ class ChatStore {
 function titleFrom(text: string): string {
 	const firstLine = text.split('\n').find((l) => l.trim()) ?? '';
 	const clean = firstLine.trim().replace(/\s+/g, ' ');
-	if (!clean) return 'Nouvelle discussion';
+	if (!clean) return 'New chat';
 	return clean.length > 58 ? `${clean.slice(0, 57)}…` : clean;
 }
 

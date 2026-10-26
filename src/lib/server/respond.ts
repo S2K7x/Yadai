@@ -60,7 +60,7 @@ export function gate(key: string, perSecond: number, burst: number): Response | 
 	if (allowRequest(key, perSecond, burst)) return null;
 	return errorResponse(
 		429,
-		'Trop de requêtes. Ralentissez un instant.',
+		'Too many requests. Slow down for a moment.',
 		AppErrorCode.RateLimited,
 		1
 	);
@@ -71,10 +71,10 @@ export async function readJson<T>(request: Request): Promise<{ body: T } | { res
 	try {
 		const parsed = (await request.json()) as T;
 		if (!parsed || typeof parsed !== 'object') {
-			return { response: errorResponse(400, 'Le corps doit être un objet JSON.', 'invalid_body') };
+			return { response: errorResponse(400, 'The body must be a JSON object.', 'invalid_body') };
 		}
 		return { body: parsed };
 	} catch {
-		return { response: errorResponse(400, 'Corps JSON invalide.', 'invalid_body') };
+		return { response: errorResponse(400, 'Invalid JSON body.', 'invalid_body') };
 	}
 }

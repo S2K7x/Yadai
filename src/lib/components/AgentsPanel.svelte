@@ -5,6 +5,7 @@
 	import {
 		AGENT_COLORS,
 		AGENT_COLOR_HEX,
+		AGENT_COLOR_NAMES,
 		MAX_AGENT_CHILDREN,
 		MAX_AGENT_NAME,
 		MAX_AGENT_PROMPT,
@@ -44,7 +45,7 @@
 		const base = agents.items.find((a) => a.id === editing);
 		const row: Agent = {
 			id,
-			name: draft.name.trim() || 'Nouvel agent',
+			name: draft.name.trim() || 'New agent',
 			emoji: draft.emoji,
 			color: draft.color,
 			role: draft.role.trim(),
@@ -114,9 +115,9 @@
 	async function confirmRemove(agent: Agent) {
 		const used = chat.sessions.filter((s) => s.agent_id === agent.id).length;
 		const warning = used
-			? `\n\n${used} conversation${used > 1 ? 's' : ''} repasseront au prompt par défaut de Yadai (leur historique est conservé).`
+			? `\n\n${used} conversation${used > 1 ? 's' : ''} will go back to Yadai's default prompt (their history is kept).`
 			: '';
-		if (!confirm(`Supprimer l'agent « ${agent.name} » ?${warning}`)) return;
+		if (!confirm(`Delete the agent “${agent.name}”?${warning}`)) return;
 		if (await agents.remove(agent.id)) {
 			if (editing === agent.id) editing = null;
 			chat.refreshSessions();
@@ -137,21 +138,21 @@
 
 <Modal
 	{open}
-	title={editing === null ? 'Ton équipe' : editing ? "Modifier l'agent" : 'Nouvel agent'}
-	label="Équipe d'agents"
+	title={editing === null ? 'Your team' : editing ? 'Edit agent' : 'New agent'}
+	label="Agent team"
 	width={660}
 	{onclose}
 >
-	{#snippet subtitle()}Chaque agent a son métier et son prompt{/snippet}
+	{#snippet subtitle()}Each agent has its own role and prompt{/snippet}
 
 	<div class="body">
 		{#if editing === null}
-			<button class="new" onclick={startCreate}>＋ Nouvel agent</button>
+			<button class="new" onclick={startCreate}>＋ New agent</button>
 
 			{#if agents.items.length === 0}
 				<p class="none">
-					Aucun agent pour l'instant. Un agent, c'est un nom, un métier et un prompt système
-					renvoyé à chaque message.
+					No agents yet. An agent is a name, a role and a system prompt
+					sent with every message.
 				</p>
 			{/if}
 
@@ -166,7 +167,7 @@
 								{#if agent.role}<span class="job">{agent.role}</span>{/if}
 							</span>
 							{#if agent.orchestrator && team.length > 0}
-								<span class="tag" title="Cet agent peut déléguer à d'autres">chef d'équipe</span>
+								<span class="tag" title="This agent can delegate to others">team lead</span>
 							{/if}
 						</div>
 						{#if agent.orchestrator && team.length > 0}
@@ -176,15 +177,15 @@
 										<span class="branch">└</span>
 										{node.agent.name}
 										{#if node.agent.role}<span class="job">— {node.agent.role}</span>{/if}
-										{#if node.repeated}<span class="job">(déjà plus haut)</span>{/if}
+										{#if node.repeated}<span class="job">(already above)</span>{/if}
 									</li>
 								{/each}
 							</ul>
 						{/if}
 						<div class="ops">
-							<button onclick={() => startEdit(agent)}>Modifier</button>
-							<button onclick={() => startDuplicate(agent)}>Dupliquer</button>
-							<button class="danger" onclick={() => confirmRemove(agent)}>Supprimer</button>
+							<button onclick={() => startEdit(agent)}>Edit</button>
+							<button onclick={() => startDuplicate(agent)}>Duplicate</button>
+							<button class="danger" onclick={() => confirmRemove(agent)}>Delete</button>
 						</div>
 					</li>
 				{/each}
@@ -199,77 +200,77 @@
 				     erasing what someone typed into it is another, and the same
 				     string is still copied into the composed prompt. -->
 				<label>
-					Nom
-					<input bind:value={draft.name} placeholder="Chercheur" maxlength={MAX_AGENT_NAME} />
+					Name
+					<input bind:value={draft.name} placeholder="Researcher" maxlength={MAX_AGENT_NAME} />
 				</label>
 
-				<div class="swatches" role="group" aria-label="Couleur">
+				<div class="swatches" role="group" aria-label="Colour">
 					{#each AGENT_COLORS as color (color)}
 						<button
 							type="button"
 							class:sel={draft.color === color}
 							style="--agent: {AGENT_COLOR_HEX[color]}"
-							aria-label={color}
-							title={color}
+							aria-label={AGENT_COLOR_NAMES[color] ?? color}
+							title={AGENT_COLOR_NAMES[color] ?? color}
 							onclick={() => (draft.color = color)}></button>
 					{/each}
 				</div>
 
 				<label>
-					Métier
+					Role
 					<input
 						bind:value={draft.role}
-						placeholder="Recherche en ligne et synthèse sourcée"
+						placeholder="Web research and sourced summaries"
 						maxlength={MAX_AGENT_ROLE}
 					/>
 				</label>
-				<p class="muted small">Une ligne. C'est ce que lit un chef d'équipe pour savoir quand le solliciter.</p>
+				<p class="muted small">One line. It is what a team lead reads to know when to call on this agent.</p>
 
 				<label>
-					Prompt système
+					System prompt
 					<textarea
 						bind:value={draft.prompt}
 						rows="8"
 						maxlength={MAX_AGENT_PROMPT}
-						placeholder="Tu cherches et tu synthétises. Croise au moins deux sources et cite tes liens…"
+						placeholder="You search and summarise. Cross-check at least two sources and cite your links…"
 					></textarea>
 				</label>
 				<p class="muted small">
-					Renvoyé à Yadai à chaque message de la conversation — {draft.prompt.length} / {MAX_AGENT_PROMPT}
-					caractères.
+					Sent to Yadai with every message of the conversation — {draft.prompt.length} / {MAX_AGENT_PROMPT}
+					characters.
 				</p>
 
 				{#if models.length > 0}
 					<label>
-						Modèle préféré
+						Preferred model
 						<select bind:value={draft.model}>
-							<option value="">Modèle par défaut de Yadai</option>
+							<option value="">Yadai's default model</option>
 							{#each models as model (model)}
 								<option value={model}>{model}</option>
 							{/each}
 						</select>
 					</label>
 					<p class="muted small">
-						Appliqué aux conversations démarrées avec cet agent. Un modèle que la passerelle ne
-						sait plus router est ignoré au profit du défaut.
+						Applied to conversations started with this agent. A model the gateway can no
+						longer route is ignored in favour of the default.
 					</p>
 				{/if}
 
 				<label class="check">
 					<input type="checkbox" bind:checked={draft.orchestrator} />
-					<span>Peut piloter d'autres agents</span>
+					<span>Can lead other agents</span>
 				</label>
 				<p class="muted small">
-					Coché, son prompt reçoit la fiche des agents ci-dessous et la marche à suivre pour les
-					lancer avec l'outil <code>delegate_task</code> de Yadai. Chaque agent lancé est un agent
-					Yadai complet qui tourne sur le même Raspberry&nbsp;Pi&nbsp;5 : à quatre cœurs, deux ou
-					trois en parallèle se sentent passer. Un agent piloté ne voit rien de la conversation —
-					le chef doit tout lui écrire.
+					When checked, its prompt gets the cards of the agents below and the steps to
+					start them with Yadai's <code>delegate_task</code> tool. Each agent started is a full
+					Yadai agent running on the same Raspberry&nbsp;Pi&nbsp;5: with four cores, two or
+					three in parallel are felt. A led agent sees nothing of the conversation —
+					the lead has to write everything down for it.
 				</p>
 
 				{#if draft.orchestrator}
 					{#if pickable.length === 0}
-						<p class="muted small">Créez d'abord un autre agent à piloter.</p>
+						<p class="muted small">Create another agent to lead first.</p>
 					{:else}
 						<div class="picks">
 							{#each pickable as agent (agent.id)}
@@ -282,7 +283,7 @@
 										onchange={() => toggleChild(agent.id)}
 									/>
 									<span>{agent.name}</span>
-									{#if agent.orchestrator}<span class="job">chef</span>{/if}
+									{#if agent.orchestrator}<span class="job">lead</span>{/if}
 								</label>
 							{/each}
 						</div>
@@ -290,13 +291,13 @@
 
 					{#if tree.length > 1}
 						<div class="preview-tree">
-							<span class="muted small">L'équipe telle que Yadai la verra :</span>
+							<span class="muted small">The team as Yadai will see it:</span>
 							<ul class="tree">
 								{#each tree as node (node.key)}
 									<li style="padding-left: {node.depth * 16}px">
 										{#if node.depth > 0}<span class="branch">└</span>{/if}
 										{node.agent.name}
-										{#if node.repeated}<span class="job">(déjà plus haut)</span>{/if}
+										{#if node.repeated}<span class="job">(already above)</span>{/if}
 									</li>
 								{/each}
 							</ul>
@@ -314,15 +315,15 @@
 
 				{#if preview}
 					<details>
-						<summary>Voir le prompt envoyé à chaque message</summary>
+						<summary>See the prompt sent with every message</summary>
 						<pre>{preview}</pre>
 					</details>
 				{/if}
 
 				<div class="actions">
-					<button onclick={() => (editing = null)}>Annuler</button>
+					<button onclick={() => (editing = null)}>Cancel</button>
 					<button class="primary" disabled={errors.length > 0 || agents.saving} onclick={submit}>
-						{agents.saving ? 'Enregistrement…' : 'Enregistrer'}
+						{agents.saving ? 'Saving…' : 'Save'}
 					</button>
 				</div>
 			</div>
@@ -331,7 +332,7 @@
 
 	{#snippet footer()}
 		<span class="foot-note">
-			Une conversation appartient à un agent ; changer d'agent s'applique au message suivant.
+			A conversation belongs to an agent; switching agents applies to the next message.
 		</span>
 	{/snippet}
 </Modal>

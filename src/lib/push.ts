@@ -79,9 +79,9 @@ export function turnNotification(input: {
 }): PushMessage {
 	const title = truncate(input.sessionTitle?.trim() || 'Yadai', 60);
 	let body: string;
-	if (input.error) body = truncate(`Le tour a échoué : ${input.error}`, NOTIFICATION_BODY_CHARS);
+	if (input.error) body = truncate(`The turn failed: ${input.error}`, NOTIFICATION_BODY_CHARS);
 	else if (input.text?.trim()) body = answerPreview(input.text);
-	else body = 'Réponse terminée.';
+	else body = 'Answer ready.';
 	return {
 		title,
 		body,
@@ -127,7 +127,7 @@ export function pushServiceName(host: string): string {
 /** Short device name derived from the user agent, so the list is readable. */
 export function deviceLabel(userAgent: string): string {
 	const ua = userAgent || '';
-	let platform = 'Appareil';
+	let platform = 'Device';
 	if (/iPhone/i.test(ua)) platform = 'iPhone';
 	else if (/iPad/i.test(ua)) platform = 'iPad';
 	else if (/Android/i.test(ua)) platform = 'Android';

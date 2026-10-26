@@ -46,19 +46,19 @@
 		<div class="bubble">
 			<!-- Read out before the text: a transcript of bare paragraphs gives
 			     no clue who is speaking. Visible attribution is the layout. -->
-			<span class="sr-only">Vous :</span>
+			<span class="sr-only">You:</span>
 			{#if message.images.length}
 				<div class="images">
 					{#each message.images as src, i (i)}
-						<img {src} alt="pièce jointe {i + 1}" />
+						<img {src} alt="attachment {i + 1}" />
 					{/each}
 				</div>
 			{/if}
 			<div class="user-text">{message.content}</div>
 		</div>
 	{:else}
-		<div class="assistant">
-			<span class="sr-only">Yadai :</span>
+		<div class="reply">
+			<span class="sr-only">Yadai:</span>
 			<ToolSteps steps={message.steps} reasoning={message.reasoning} streaming={message.streaming} />
 
 			{#if message.content}
@@ -72,23 +72,23 @@
 			{#if approval}
 				<div class="approval">
 					<p class="ap-head">
-						<Icon name="key" size={15} /> Approbation requise — non accordable ici
+						<Icon name="key" size={15} /> Approval required — cannot be granted here
 					</p>
 					<pre class="ap-cmd">{approval.command}</pre>
-					{#if approval.reason}<p class="ap-why">Motif : {approval.reason}.</p>{/if}
+					{#if approval.reason}<p class="ap-why">Reason: {approval.reason}.</p>{/if}
 					<p class="ap-body">
-						Hermes n'expose de bouton d'approbation que sur son autre canal d'exécution, celui qui
-						ne recharge pas l'historique d'une conversation. Cette interface a choisi la mémoire du
-						fil — la commande n'a donc pas été lancée, et il n'y a plus rien à accorder : la demande
-						n'attend pas, elle est déjà retombée.
+						Hermes only offers an approval button on its other execution path, the one that does
+						not reload a conversation's history. This interface chose the thread's memory — so the
+						command was not run, and there is nothing left to grant: the request does not wait, it
+						has already lapsed.
 					</p>
 					<p class="ap-body">
-						Pour l'exécuter : lancez-la vous-même sur le Pi, ou redemandez-la depuis le CLI
-						<code>hermes</code> ou Telegram, où Yadai sait poser la question.
+						To run it: run it yourself on the Pi, or ask again from the <code>hermes</code> CLI
+						or Telegram, where Yadai can ask the question.
 					</p>
 					<div class="ap-actions">
 						<button onclick={copyCommand}>
-							{approvalCopied ? 'copiée' : 'copier la commande'}
+							{approvalCopied ? 'copied' : 'copy command'}
 						</button>
 					</div>
 				</div>
@@ -101,23 +101,23 @@
 			{#if message.detached}
 				<div class="detached">
 					{#if message.detached === 'truncated'}
-						Le flux s'est interrompu avant la fin du tour : ce texte est incomplet. L'agent
-						termine en arrière-plan et sa réponse entière sera dans la conversation.
+						The stream stopped before the turn finished: this text is incomplete. The agent is
+						finishing in the background and its full answer will be in the conversation.
 					{:else}
-						Affichage interrompu. Yadai n'expose pas d'arrêt pour ce type de tour : l'agent
-						termine en arrière-plan et sa réponse sera dans la conversation.
+						Display detached. Yadai has no stop for this kind of turn: the agent is finishing in
+						the background and its answer will be in the conversation.
 					{/if}
-					<button onclick={onreload}>Recharger</button>
+					<button onclick={onreload}>Reload</button>
 				</div>
 			{/if}
 
 			{#if !message.streaming && (message.content || message.error)}
 				<div class="actions">
 					{#if message.content}
-						<button onclick={copy}>{copied ? 'copié' : 'copier'}</button>
+						<button onclick={copy}>{copied ? 'copied' : 'copy'}</button>
 					{/if}
-					{#if onresend}<button onclick={onresend}>renvoyer</button>{/if}
-					{#if onfork}<button onclick={onfork}>brancher ici</button>{/if}
+					{#if onresend}<button onclick={onresend}>resend</button>{/if}
+					{#if onfork}<button onclick={onfork}>branch here</button>{/if}
 				</div>
 			{/if}
 		</div>
@@ -162,7 +162,7 @@
 	}
 	/* The assistant answers in a card of its own, so the blocks a reply
 	   contains (code, tables) read as insets rather than as the page. */
-	.assistant {
+	.reply {
 		width: 100%;
 		min-width: 0;
 		padding: 16px 20px;
@@ -197,7 +197,7 @@
 	/* Where did it say that? — the palette answers with an excerpt, this says
 	   where. Two and a half seconds, then the thread looks untouched again. */
 	.msg.flash .bubble,
-	.msg.flash .assistant {
+	.msg.flash .reply {
 		animation: flash 2.4s ease-out;
 	}
 	@keyframes flash {
@@ -211,7 +211,7 @@
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.msg.flash .bubble,
-		.msg.flash .assistant {
+		.msg.flash .reply {
 			animation-duration: 0.01s;
 			box-shadow: var(--shadow-card), 0 0 0 2px var(--focus);
 		}
@@ -312,13 +312,23 @@
 		opacity: 0;
 		transition: opacity 0.15s;
 	}
+	/* The latest answer keeps its actions on show, the way Claude.ai does: it
+	   is the one you are most likely to copy or resend, and the row's space is
+	   reserved either way — hidden, it read as an empty band under the card. */
 	.msg:hover .actions,
+	.msg:last-of-type .actions,
 	.actions:focus-within {
 		opacity: 1;
 	}
+	/* No hover on touch, so the pills are always shown — at full strength and
+	   in the muted ink rather than the faint one: faded twice over (65 % of
+	   --text-faint) they were measured well under 3:1 on the reply card. */
 	@media (hover: none) {
 		.actions {
-			opacity: 0.65;
+			opacity: 1;
+		}
+		.actions button {
+			color: var(--text-muted);
 		}
 	}
 	.actions button {
@@ -339,7 +349,7 @@
 			min-height: 44px;
 			padding: 6px 16px;
 		}
-		.assistant {
+		.reply {
 			padding: 14px 16px;
 		}
 		.bubble {

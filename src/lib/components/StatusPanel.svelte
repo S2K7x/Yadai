@@ -63,12 +63,12 @@
 	}
 
 	const LABELS: Record<string, string> = {
-		state_db: 'Base de données',
+		state_db: 'Database',
 		config: 'Configuration',
-		model: 'Modèle',
-		disk: 'Disque',
+		model: 'Model',
+		disk: 'Disk',
 		gateway: 'Gateway',
-		background_queues: "Files d'arrière-plan"
+		background_queues: 'Background queues'
 	};
 
 	/** Pull the interesting numbers out of a readiness check for display. */
@@ -83,24 +83,24 @@
 				typeof bytes === 'number' && Number.isFinite(bytes) && bytes >= 0
 					? formatBytes(bytes)
 					: null;
-			return [used !== undefined ? `${used}% utilisé` : null, free ? `${free} libres` : null]
+			return [used !== undefined ? `${used}% used` : null, free ? `${free} free` : null]
 				.filter(Boolean)
 				.join(' · ');
 		}
 		if (name === 'gateway') {
-			return `${check.state ?? '?'} · ${check.connected_platforms ?? 0}/${check.platforms ?? 0} plateformes`;
+			return `${check.state ?? '?'} · ${check.connected_platforms ?? 0}/${check.platforms ?? 0} platforms`;
 		}
 		if (name === 'background_queues') {
-			return `${check.active_api_runs ?? 0} run(s) API · ${check.active_delegations ?? 0} délégation(s)`;
+			return `${check.active_api_runs ?? 0} API run(s) · ${check.active_delegations ?? 0} delegation(s)`;
 		}
 		return '';
 	}
 </script>
 
-<Modal {open} title="État du système" width={560} {onclose}>
+<Modal {open} title="System status" width={560} {onclose}>
 	<div class="body">
 		{#if chat.status === null}
-			<p class="muted">Chargement…</p>
+			<p class="muted">Loading…</p>
 		{:else if chat.status.healthError}
 			<p class="err"><Icon name="warning" size={15} /> {chat.status.healthError}</p>
 		{/if}
@@ -112,12 +112,12 @@
 					<div class="strong">Yadai {health.version}</div>
 					<div class="muted">
 						gateway {health.gateway_state ?? '?'} · PID {health.pid}
-						{#if health.gateway_busy}· occupé{/if}
+						{#if health.gateway_busy}· busy{/if}
 					</div>
 				</div>
 			</div>
 
-			<h3>Contrôles</h3>
+			<h3>Checks</h3>
 			<ul class="checks">
 				{#each checks as [name, check] (name)}
 					<li>
@@ -128,7 +128,7 @@
 				{/each}
 			</ul>
 
-			<h3>Plateformes</h3>
+			<h3>Platforms</h3>
 			<ul class="checks">
 				{#each Object.entries(health.platforms ?? {}) as [name, info] (name)}
 					<li>
@@ -141,7 +141,7 @@
 		{/if}
 
 		{#if machine.length > 0 || chat.status?.systemError}
-			<h3>Le Raspberry Pi</h3>
+			<h3>The Raspberry Pi</h3>
 			{#if machine.length > 0}
 				{#if machineLine(chat.status?.system)}
 					<p class="muted small machine">{machineLine(chat.status?.system)}</p>
@@ -161,20 +161,20 @@
 			{/if}
 		{/if}
 
-		<h3>Cette interface</h3>
+		<h3>This interface</h3>
 		<ul class="checks">
 			<li>
 				<span class="li-icon"><Icon name="settings" size={15} /></span>
-				<span class="name">Tours simultanés</span>
+				<span class="name">Simultaneous turns</span>
 				<span class="muted small">
 					{chat.status?.turns.active ?? 0} / {chat.status?.turns.limit ?? '—'}
 				</span>
 			</li>
 			<li>
 				<span class="li-icon"><Icon name="wrench" size={15} /></span>
-				<span class="name">Outils exposés</span>
+				<span class="name">Exposed tools</span>
 				<span class="muted small">
-					{chat.toolCount}{chat.mcpTools.length ? ` · dont ${chat.mcpTools.length} MCP` : ''}
+					{chat.toolCount}{chat.mcpTools.length ? ` · ${chat.mcpTools.length} via MCP` : ''}
 				</span>
 			</li>
 			<li>
@@ -185,7 +185,7 @@
 			{#if usageSummary(chat.current)}
 				<li>
 					<span class="li-icon"><Icon name="chart" size={15} /></span>
-					<span class="name">Conversation ouverte</span>
+					<span class="name">Open conversation</span>
 					<span class="muted small">{usageSummary(chat.current)}</span>
 				</li>
 			{/if}
@@ -195,11 +195,11 @@
 
 		{#if chat.status?.jobsAvailable}
 			<h3>
-				Tâches planifiées
-				<button class="link" onclick={onopenJobs}>gérer</button>
+				Scheduled tasks
+				<button class="link" onclick={onopenJobs}>manage</button>
 			</h3>
 			{#if jobs.length === 0}
-				<p class="muted small empty">Aucune tâche planifiée.</p>
+				<p class="muted small empty">No scheduled tasks.</p>
 			{:else}
 				<ul class="checks">
 					{#each jobs as job (job.id ?? job.name)}
@@ -215,7 +215,7 @@
 		{/if}
 
 		{#if chat.mcpTools.length}
-			<h3>Outils MCP</h3>
+			<h3>MCP tools</h3>
 			<p class="tools">
 				{#each chat.mcpTools as tool (tool)}<code>{tool}</code>{/each}
 			</p>
@@ -223,7 +223,7 @@
 	</div>
 
 	{#snippet footer()}
-		<button class="refresh" onclick={() => chat.refreshStatus()}>Actualiser</button>
+		<button class="refresh" onclick={() => chat.refreshStatus()}>Refresh</button>
 	{/snippet}
 </Modal>
 

@@ -82,7 +82,7 @@
 
 	function startCreate(from?: HermesJob) {
 		editing = '';
-		name = from ? `${from.name ?? ''} (copie)`.slice(0, MAX_JOB_NAME) : '';
+		name = from ? `${from.name ?? ''} (copy)`.slice(0, MAX_JOB_NAME) : '';
 		instruction = from ? (from.instruction ?? from.prompt ?? '') : '';
 		agentId = from ? (from.agent_id ?? null) : null;
 		deliver = from?.deliver ?? jobsStore.deliveryChoices[0]?.id ?? 'local';
@@ -123,15 +123,15 @@
 		const state = jobState(job);
 		const parts = [state.label];
 		const next = nextRunLabel(job);
-		if (next && state.key !== 'paused') parts.push(`prochaine ${next}`);
+		if (next && state.key !== 'paused') parts.push(`next ${next}`);
 		const last = lastRunLabel(job);
 		if (last) parts.push(last);
-		if (job.deliver && job.deliver !== 'local') parts.push(`envoyé sur ${job.deliver}`);
+		if (job.deliver && job.deliver !== 'local') parts.push(`sent to ${job.deliver}`);
 		return parts.join(' · ');
 	}
 
 	function confirmRemove(id: string, label: string) {
-		if (!confirm(`Supprimer définitivement la tâche « ${label} » ?`)) return;
+		if (!confirm(`Delete the task “${label}” forever?`)) return;
 		jobsStore.remove(id);
 	}
 
@@ -150,19 +150,19 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<Modal {open} title="Tâches planifiées" width={620} {onclose}>
-	{#snippet subtitle()}Yadai les exécute seul, même app fermée{/snippet}
+<Modal {open} title="Scheduled tasks" width={620} {onclose}>
+	{#snippet subtitle()}Yadai runs them on its own, even with the app closed{/snippet}
 
 	<div class="body">
 		{#if jobsStore.state === 'disabled'}
 			<p class="none">
-				Ce Yadai tourne sans son module cron : aucune tâche ne peut être planifiée.
+				This Hermes runs without its cron module: no task can be scheduled.
 			</p>
 		{:else if editing !== null}
 			<div class="form">
 				{#if !editing}
 					<div class="templates">
-						<span class="muted small">Pour démarrer :</span>
+						<span class="muted small">To get started:</span>
 						{#each JOB_TEMPLATES as template (template.label)}
 							<button type="button" onclick={() => applyTemplate(template)}>
 								{template.label}
@@ -172,12 +172,12 @@
 				{/if}
 
 				<label>
-					Nom
-					<input bind:value={name} placeholder="Résumé du matin" maxlength={MAX_JOB_NAME} />
+					Name
+					<input bind:value={name} placeholder="Morning briefing" maxlength={MAX_JOB_NAME} />
 				</label>
 
 				<fieldset class="who">
-					<legend>Qui s'en charge</legend>
+					<legend>Who handles it</legend>
 					<div class="chips">
 						<button
 							type="button"
@@ -185,7 +185,7 @@
 							onclick={() => (agentId = null)}
 							style="--agent: var(--text-faint)"
 						>
-							<span class="dot"></span>Yadai par défaut
+							<span class="dot"></span>Default Yadai
 						</button>
 						{#each agents.items as agent (agent.id)}
 							<button
@@ -200,16 +200,16 @@
 					</div>
 					<p class="muted small">
 						{#if agentId}
-							La fiche de cet agent part avec la tâche : elle s'exécutera avec sa personnalité et
-							son équipe.
+							This agent's card goes with the task: it will run with its personality and
+							its team.
 						{:else}
-							La tâche tournera avec le prompt système par défaut de Yadai.
+							The task will run with Yadai's default system prompt.
 						{/if}
 					</p>
 				</fieldset>
 
 				<fieldset class="when">
-					<legend>Quand</legend>
+					<legend>When</legend>
 					<div class="chips modes">
 						{#each SCHEDULE_MODES as m (m.value)}
 							<button
@@ -222,36 +222,36 @@
 
 					<div class="fields">
 						{#if spec.mode === 'daily'}
-							<span class="lead">à</span>
+							<span class="lead">at</span>
 							<input type="time" bind:value={spec.time} />
 						{:else if spec.mode === 'weekly'}
-							<span class="lead">chaque</span>
+							<span class="lead">every</span>
 							<select bind:value={spec.weekday}>
 								{#each WEEKDAYS as day (day.value)}
 									<option value={day.value}>{day.label}</option>
 								{/each}
 							</select>
-							<span class="lead">à</span>
+							<span class="lead">at</span>
 							<input type="time" bind:value={spec.time} />
 						{:else if spec.mode === 'monthly'}
-							<span class="lead">le</span>
+							<span class="lead">on</span>
 							<select bind:value={spec.monthday}>
 								{#each Array.from({ length: 28 }, (_, i) => i + 1) as day (day)}
 									<option value={day}>{day}</option>
 								{/each}
 							</select>
-							<span class="lead">de chaque mois, à</span>
+							<span class="lead">of every month, at</span>
 							<input type="time" bind:value={spec.time} />
 						{:else if spec.mode === 'interval'}
-							<span class="lead">toutes les</span>
+							<span class="lead">every</span>
 							<input class="num" type="number" min="1" max="999" bind:value={spec.every} />
 							<select bind:value={spec.unit}>
 								<option value="m">minutes</option>
-								<option value="h">heures</option>
-								<option value="d">jours</option>
+								<option value="h">hours</option>
+								<option value="d">days</option>
 							</select>
 						{:else if spec.mode === 'once'}
-							<span class="lead">le</span>
+							<span class="lead">on</span>
 							<input type="datetime-local" bind:value={spec.at} />
 						{:else}
 							<input
@@ -267,48 +267,48 @@
 
 					{#if spec.mode === 'advanced'}
 						<p class="muted small">
-							Expression cron à cinq champs, « every 30m », « 2h » ou une date ISO. Utile pour ce
-							que les choix ci-dessus ne couvrent pas (« 0 8 * * 1-5 » : en semaine seulement).
+							A five-field cron expression, "every 30m", "2h" or an ISO date. Useful for what
+							the choices above don't cover ("0 8 * * 1-5": weekdays only).
 						</p>
 					{/if}
 					{#if spec.mode === 'monthly'}
 						<p class="muted small">
-							Le 29, le 30 et le 31 sauteraient des mois : la liste s'arrête au 28.
+							The 29th, 30th and 31st would skip months: the list stops at the 28th.
 						</p>
 					{/if}
 
 					<p class="preview" class:bad={parsed.kind === null}>
-						{parsed.kind === null ? parsed.error : `Tournera ${parsed.display}.`}
+						{parsed.kind === null ? parsed.error : `Will run ${parsed.display}.`}
 					</p>
 				</fieldset>
 
 				<label>
-					Instruction pour Yadai
+					Instruction for Yadai
 					<textarea
 						bind:value={instruction}
 						rows="5"
 						maxlength={limit}
-						placeholder="Résume les nouveautés tech du jour en cinq puces."
+						placeholder="Summarise today's tech news in five bullet points."
 					></textarea>
 				</label>
 				<p class="muted small">
-					L'instruction doit se suffire à elle-même : la tâche tourne dans sa propre conversation,
-					sans le contexte de celle-ci.
+					The instruction must stand on its own: the task runs in its own conversation,
+					without the context of this one.
 					{#if agentId}
-						<br />Prompt envoyé : {composed.prompt.length} caractères, dont {composed.personaChars}
-						pour la fiche de l'agent.
+						<br />Prompt sent: {composed.prompt.length} characters, including {composed.personaChars}
+						for the agent's card.
 					{/if}
 				</p>
 				{#if composed.clipped}
 					<p class="preview bad">
-						L'instruction est trop longue pour laisser passer la fiche de l'agent en entier :
-						raccourcissez-la, ou choisissez « Yadai par défaut ».
+						The instruction is too long to let the agent's card through in full:
+						shorten it, or choose "Default Yadai".
 					</p>
 				{/if}
 
 				{#if jobsStore.deliveryChoices.length > 1}
 					<label>
-						Livraison
+						Delivery
 						<select bind:value={deliver}>
 							{#each jobsStore.deliveryChoices as target (target.id)}
 								<option value={target.id}>{targetLabel(target)}</option>
@@ -323,22 +323,22 @@
 			     action must not make the tasks vanish from the screen. -->
 			{#if jobsStore.state === 'failed'}
 				<div class="read-failed">
-					<p>La liste des tâches n'a pas pu être lue.</p>
+					<p>The task list could not be read.</p>
 					<p class="muted small">{jobsStore.loadError}</p>
 					<button onclick={() => jobsStore.refresh(true)} disabled={jobsStore.loading}>
-						{jobsStore.loading ? 'Lecture…' : 'Réessayer'}
+						{jobsStore.loading ? 'Reading…' : 'Retry'}
 					</button>
 				</div>
 			{/if}
 
-			<button class="new" onclick={() => startCreate()}>＋ Nouvelle tâche</button>
+			<button class="new" onclick={() => startCreate()}>＋ New task</button>
 
 			{#if jobsStore.jobs === null && jobsStore.loading}
-				<p class="none">Chargement…</p>
+				<p class="none">Loading…</p>
 			{:else if jobsStore.jobs !== null && jobsStore.sorted.length === 0}
 				<p class="none">
-					Aucune tâche planifiée. Un rappel dans deux heures ou un résumé chaque matin, confié à
-					l'agent de votre choix, c'est ici.
+					No scheduled tasks. A reminder in two hours or a briefing every morning, handed to
+					the agent of your choice — it happens here.
 				</p>
 			{/if}
 
@@ -367,10 +367,10 @@
 						</div>
 						{#if job.persona_stale && canEditJob(job)}
 							<p class="stale">
-								La fiche de {agent ? agent.name : "l'agent"} a changé depuis.
+								{agent ? agent.name : 'The agent'}'s card has changed since.
 								<button
 									disabled={jobsStore.busyId === job.id}
-									onclick={() => jobsStore.resync(job)}>Mettre à jour</button
+									onclick={() => jobsStore.resync(job)}>Update</button
 								>
 							</p>
 						{/if}
@@ -380,24 +380,24 @@
 						<div class="ops">
 							<button
 								disabled={jobsStore.busyId === job.id}
-								onclick={() => jobsStore.act(job.id!, 'run')}>Lancer</button
+								onclick={() => jobsStore.act(job.id!, 'run')}>Run now</button
 							>
 							<button
 								disabled={jobsStore.busyId === job.id}
 								onclick={() => jobsStore.act(job.id!, state.key === 'paused' ? 'resume' : 'pause')}
 							>
-								{state.key === 'paused' ? 'Reprendre' : 'Mettre en pause'}
+								{state.key === 'paused' ? 'Resume' : 'Pause'}
 							</button>
 							<button disabled={jobsStore.busyId === job.id} onclick={() => startEdit(job)}>
-								Modifier
+								Edit
 							</button>
 							<button disabled={jobsStore.busyId === job.id} onclick={() => startCreate(job)}>
-								Dupliquer
+								Duplicate
 							</button>
 							<button
 								class="danger"
 								disabled={jobsStore.busyId === job.id}
-								onclick={() => confirmRemove(job.id!, job.name ?? job.id!)}>Supprimer</button
+								onclick={() => confirmRemove(job.id!, job.name ?? job.id!)}>Delete</button
 							>
 						</div>
 					</li>
@@ -414,19 +414,19 @@
 			{#if jobsStore.state === 'disabled'}
 				&nbsp;
 			{:else if editing !== null}
-				{modeLabel(spec.mode)} · {parsed.kind === null ? 'horaire à compléter' : parsed.display}
+				{modeLabel(spec.mode)} · {parsed.kind === null ? 'schedule to complete' : parsed.display}
 			{:else}
-				Une tâche tourne côté Pi avec tous les outils de Yadai.
+				A task runs on the Pi with all of Yadai's tools.
 			{/if}
 		</span>
 		{#if editing !== null && jobsStore.state !== 'disabled'}
-			<button class="refresh" onclick={() => (editing = null)}>Annuler</button>
+			<button class="refresh" onclick={() => (editing = null)}>Cancel</button>
 			<button class="refresh primary" disabled={!canSubmit} onclick={submit}>
-				{jobsStore.creating ? 'Enregistrement…' : editing ? 'Enregistrer' : 'Planifier'}
+				{jobsStore.creating ? 'Saving…' : editing ? 'Save' : 'Schedule'}
 			</button>
 		{:else}
 			<button class="refresh" onclick={() => jobsStore.refresh()} disabled={jobsStore.loading}>
-				Actualiser
+				Refresh
 			</button>
 		{/if}
 	{/snippet}

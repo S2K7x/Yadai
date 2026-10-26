@@ -34,7 +34,7 @@ export const PUT: RequestHandler = async ({ request }) => {
 	// Explicit, because the fallback would be an empty string — i.e. a
 	// malformed request would truncate the file it meant to edit.
 	if (typeof content !== 'string') {
-		return errorResponse(400, 'Le champ « content » doit être une chaîne.', 'invalid_body');
+		return errorResponse(400, 'The "content" field must be a string.', 'invalid_body');
 	}
 
 	return skillsJson(async () => {

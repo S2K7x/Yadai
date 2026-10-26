@@ -43,8 +43,8 @@ export const GET: RequestHandler = async () => {
 		return json({
 			available: false,
 			message:
-				"HERMES_DASHBOARD_TOKEN n'est pas configuré : cette application ne peut pas " +
-				'joindre le dashboard de Hermes.',
+				'HERMES_DASHBOARD_TOKEN is not configured: this app cannot ' +
+				'reach the Hermes dashboard.',
 			keys: [],
 			accounts: []
 		});

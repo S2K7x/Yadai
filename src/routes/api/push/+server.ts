@@ -39,7 +39,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (!pushConfigured()) {
 		return errorResponse(
 			503,
-			"Les notifications ne sont pas configurées sur le serveur (clés VAPID absentes).",
+			"Notifications are not configured on the server (VAPID keys missing).",
 			'push_unavailable'
 		);
 	}
@@ -49,10 +49,10 @@ export const POST: RequestHandler = async ({ request }) => {
 	const { endpoint, keys, label } = parsed.body;
 
 	if (typeof endpoint !== 'string' || !/^https:\/\//.test(endpoint) || endpoint.length > 1000) {
-		return errorResponse(400, "Point de terminaison d'abonnement invalide.", 'invalid_body');
+		return errorResponse(400, 'Invalid subscription endpoint.', 'invalid_body');
 	}
 	if (typeof keys?.p256dh !== 'string' || typeof keys?.auth !== 'string') {
-		return errorResponse(400, "L'abonnement ne porte pas ses clés.", 'invalid_body');
+		return errorResponse(400, 'The subscription does not carry its keys.', 'invalid_body');
 	}
 
 	savePushSubscription({

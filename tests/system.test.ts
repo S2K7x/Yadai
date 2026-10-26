@@ -24,14 +24,14 @@ const REAL: SystemStats = {
 // The byte and number formatters moved to `$lib/format`: see tests/format.test.ts.
 
 test('an uptime is coarse, except in the first hour', () => {
-	assert.equal(humanizeUptime(30), "moins d'une minute");
+	assert.equal(humanizeUptime(30), 'under a minute');
 	assert.equal(humanizeUptime(90), '1 min');
 	assert.equal(humanizeUptime(59 * 60), '59 min');
-	assert.equal(humanizeUptime(3600), '1 h');
-	assert.equal(humanizeUptime(3600 + 12 * 60), '1 h 12');
-	assert.equal(humanizeUptime(5 * 3600 + 5 * 60), '5 h 05');
-	assert.equal(humanizeUptime(86400), '1 jour');
-	assert.equal(humanizeUptime(1934360), '22 jours');
+	assert.equal(humanizeUptime(3600), '1h');
+	assert.equal(humanizeUptime(3600 + 12 * 60), '1h 12m');
+	assert.equal(humanizeUptime(5 * 3600 + 5 * 60), '5h 05m');
+	assert.equal(humanizeUptime(86400), '1 day');
+	assert.equal(humanizeUptime(1934360), '22 days');
 	assert.equal(humanizeUptime(undefined), '—');
 	assert.equal(humanizeUptime(-5), '—');
 });
@@ -43,12 +43,12 @@ test('the four rows of a healthy Pi', () => {
 		['cpu', 'load', 'memory', 'uptime']
 	);
 	const byKey = Object.fromEntries(rows.map((r) => [r.key, r]));
-	assert.equal(byKey.cpu.value, '19 %');
-	assert.equal(byKey.cpu.detail, '4 cœurs');
-	assert.equal(byKey.load.value, '0,29 · 0,17 · 0,11');
-	assert.equal(byKey.memory.value, '2,7 Go / 7,9 Go');
-	assert.equal(byKey.memory.detail, '35 % utilisée');
-	assert.equal(byKey.uptime.value, '22 jours');
+	assert.equal(byKey.cpu.value, '19%');
+	assert.equal(byKey.cpu.detail, '4 cores');
+	assert.equal(byKey.load.value, '0.29 · 0.17 · 0.11');
+	assert.equal(byKey.memory.value, '2.7 GB / 7.9 GB');
+	assert.equal(byKey.memory.detail, '35% used');
+	assert.equal(byKey.uptime.value, '22 days');
 	for (const row of rows) assert.equal(row.level, 'ok');
 });
 
@@ -64,7 +64,7 @@ test('the load level is relative to the number of cores', () => {
 	assert.equal(load(6)?.level, 'ko');
 	// The same figure on a bigger machine is nothing at all.
 	assert.equal(load(6, 16)?.level, 'ok');
-	assert.equal(load(2)?.detail, '50 % de 4 cœurs');
+	assert.equal(load(2)?.detail, '50% of 4 cores');
 });
 
 test('CPU and memory turn colour at their own thresholds', () => {
@@ -107,11 +107,11 @@ test('a field that is missing draws no row', () => {
 
 test('memory falls back to computing the percentage itself', () => {
 	const row = systemRows({ memory: { total: 2000, used: 500 } }).find((r) => r.key === 'memory');
-	assert.equal(row?.detail, '25 % utilisée');
+	assert.equal(row?.detail, '25% used');
 });
 
 test('the machine line names the host, and skips what it does not know', () => {
-	assert.equal(machineLine(REAL), 'pi · aarch64 · 4 cœurs · Python 3.11.15');
+	assert.equal(machineLine(REAL), 'pi · aarch64 · 4 cores · Python 3.11.15');
 	assert.equal(machineLine({ hostname: 'pi' }), 'pi');
 	assert.equal(machineLine({}), '');
 	assert.equal(machineLine(null), '');

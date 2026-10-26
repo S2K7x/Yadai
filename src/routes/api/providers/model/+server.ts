@@ -28,10 +28,10 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	const { provider, model, confirm_expensive_model } = parsed.body;
 	if (typeof provider !== 'string' || !provider.trim()) {
-		return errorResponse(400, 'Choisissez un fournisseur.', 'missing_provider');
+		return errorResponse(400, 'Choose a provider.', 'missing_provider');
 	}
 	if (typeof model !== 'string' || !model.trim()) {
-		return errorResponse(400, 'Choisissez un modèle.', 'missing_model');
+		return errorResponse(400, 'Choose a model.', 'missing_model');
 	}
 
 	return dashboardResponse(() =>

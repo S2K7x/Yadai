@@ -24,13 +24,13 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	const sessionId = parsed.body.session_id;
 	const code = parsed.body.code;
 	if (typeof sessionId !== 'string' || !sessionId) {
-		return errorResponse(400, 'Session OAuth manquante.', 'invalid_body');
+		return errorResponse(400, 'Missing OAuth session.', 'invalid_body');
 	}
 	if (typeof code !== 'string' || code.trim() === '') {
-		return errorResponse(400, 'Collez le code fourni par le fournisseur.', 'invalid_body');
+		return errorResponse(400, 'Paste the code the provider gave you.', 'invalid_body');
 	}
 	if (code.length > 4096) {
-		return errorResponse(400, 'Code trop long.', 'invalid_body');
+		return errorResponse(400, 'Code too long.', 'invalid_body');
 	}
 
 	return dashboardResponse(() => submitOauthCode(params.id, sessionId, code.trim()));

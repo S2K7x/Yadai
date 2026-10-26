@@ -4,10 +4,10 @@
 
 <div class="wrap">
 	<h1>{page.status}</h1>
-	<p>{page.error?.message ?? 'Une erreur est survenue.'}</p>
+	<p>{page.error?.message ?? 'Something went wrong.'}</p>
 	<div class="actions">
-		<button onclick={() => location.reload()}>Recharger</button>
-		<a href="/">Retour au chat</a>
+		<button onclick={() => location.reload()}>Reload</button>
+		<a href="/">Back to chat</a>
 	</div>
 </div>
 

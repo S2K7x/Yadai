@@ -47,8 +47,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 				JSON.stringify({
 					error: {
 						message:
-							`Origine refusée : ${origin}. ` +
-							`Renseignez HERMES_PUBLIC_ORIGIN avec l'URL Tailscale Serve.`,
+							`Origin refused: ${origin}. ` +
+							`Set HERMES_PUBLIC_ORIGIN to the Tailscale Serve URL.`,
 						code: 'forbidden_origin'
 					}
 				}),

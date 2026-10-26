@@ -105,8 +105,8 @@ class PushStore {
 		if (permission !== 'granted') {
 			toasts.info(
 				permission === 'denied'
-					? 'Notifications refusées. Autorisez-les dans les réglages de Safari pour cette app.'
-					: 'Notifications non autorisées.'
+					? 'Notifications denied. Allow them in Safari settings for this app.'
+					: 'Notifications not allowed.'
 			);
 			return;
 		}
@@ -129,7 +129,7 @@ class PushStore {
 			});
 			await this.#register(subscription);
 			this.#bindPresence();
-			toasts.success('Notifications activées sur cet appareil.');
+			toasts.success('Notifications turned on for this device.');
 		} catch (err) {
 			toasts.error(err);
 		} finally {
@@ -156,7 +156,7 @@ class PushStore {
 			}
 			this.thisDeviceId = null;
 			await this.refresh();
-			toasts.info('Notifications désactivées sur cet appareil.');
+			toasts.info('Notifications turned off for this device.');
 		} catch (err) {
 			toasts.error(err);
 		} finally {
@@ -196,10 +196,10 @@ class PushStore {
 			);
 			if (res.sent > 0) {
 				toasts.success(
-					`Notification envoyée à ${res.sent} appareil${res.sent > 1 ? 's' : ''}. Verrouillez l'écran pour la voir.`
+					`Notification sent to ${res.sent} device${res.sent > 1 ? 's' : ''}. Lock the screen to see it.`
 				);
 			} else {
-				toasts.push('error', "Aucune notification n'a pu être envoyée.");
+				toasts.push('error', 'No notification could be sent.');
 			}
 			await this.refresh();
 		} catch (err) {

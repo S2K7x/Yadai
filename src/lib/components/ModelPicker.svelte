@@ -56,12 +56,12 @@
 		}}
 		aria-haspopup="true"
 		aria-expanded={open}
-		aria-label="Modèle : {chat.activeModel || 'aucun'}{effortBadge
-			? `, réflexion ${effortBadge}`
+		aria-label="Model: {chat.activeModel || 'none'}{effortBadge
+			? `, thinking ${effortBadge}`
 			: ''}"
 		title={chat.activeModel}
 	>
-		<span class="name">{short || 'modèle'}</span>
+		<span class="name">{short || 'model'}</span>
 		{#if effortBadge}<span class="badge">{effortBadge}</span>{/if}
 		<span class="chev" aria-hidden="true">▾</span>
 	</button>
@@ -72,17 +72,17 @@
 		<div class="menu" bind:this={menu}>
 			{#if deferred}
 				<p class="hint">
-					Ce gateway fige le modèle par conversation : ce choix s'appliquera à la prochaine
-					discussion.
+					This gateway pins the model per conversation: this choice will apply to the next
+					chat.
 				</p>
 			{:else if chat.sessionId}
 				<p class="hint">
-					Le modèle choisi s'applique à cette conversation dès le prochain message.
+					The chosen model applies to this conversation from the next message.
 				</p>
 			{/if}
 			{#if chat.canPickReasoning}
-				<div class="effort" role="group" aria-label="Effort de réflexion">
-					<p class="head">Réflexion</p>
+				<div class="effort" role="group" aria-label="Thinking effort">
+					<p class="head">Thinking</p>
 					<div class="chips">
 						{#each REASONING_EFFORTS as effort (effort)}
 							<button
@@ -98,7 +98,7 @@
 					</div>
 				</div>
 			{/if}
-			<input bind:value={filter} placeholder="Filtrer…" type="search" />
+			<input bind:value={filter} placeholder="Filter…" type="search" />
 			<div class="items">
 				{#each matches as entry (entry.provider + entry.model)}
 					{@const price = priceLabel(entry.price)}
@@ -118,12 +118,12 @@
 					</button>
 				{/each}
 				{#if matches.length === 0}
-					<p class="hint">Aucun modèle disponible. Configurez un fournisseur avec `hermes model`.</p>
+					<p class="hint">No model available. Configure a provider with `hermes model`.</p>
 				{/if}
 			</div>
 			{#if page.hidden}
 				<p class="more">
-					{page.hidden} modèle{page.hidden > 1 ? 's' : ''} de plus — affinez le filtre.
+					{page.hidden} more model{page.hidden > 1 ? 's' : ''} — refine the filter.
 				</p>
 			{/if}
 		</div>
@@ -315,6 +315,27 @@
 		.items button,
 		.chip {
 			min-height: 44px;
+		}
+	}
+	/* Phone: a bottom sheet, not a dropdown. The chip sits on the header's
+	   second row, wherever the title left it; a sheet is anchored to the
+	   screen instead, within reach of a thumb, and wide enough for a model
+	   id and its price. */
+	@media (max-width: 820px) {
+		.scrim {
+			background: var(--scrim);
+		}
+		.menu {
+			position: fixed;
+			left: 8px;
+			right: 8px;
+			top: auto;
+			bottom: calc(8px + env(safe-area-inset-bottom));
+			width: auto;
+			padding: 12px;
+		}
+		.items {
+			max-height: 52dvh;
 		}
 	}
 </style>

@@ -48,7 +48,7 @@ export const DashboardErrorCode = {
 } as const;
 
 const DISABLED_MESSAGE =
-	'La gestion des providers est désactivée : HERMES_DASHBOARD_TOKEN n\'est pas configuré.';
+	'Provider management is turned off: HERMES_DASHBOARD_TOKEN is not configured.';
 
 /** Is the feature usable at all? Drives the panel's on/off, never throws. */
 export function dashboardConfigured(): boolean {
@@ -115,13 +115,13 @@ async function once<T>(path: string, opts: CallOptions): Promise<T> {
 		if ((err as Error)?.name === 'TimeoutError') {
 			throw new DashboardError(
 				504,
-				`Le dashboard Hermes n'a pas répondu en ${timeoutMs} ms.`,
+				`The Hermes dashboard did not respond within ${timeoutMs} ms.`,
 				DashboardErrorCode.Timeout
 			);
 		}
 		throw new DashboardError(
 			502,
-			"Le dashboard Hermes est injoignable (service hermes-dashboard démarré ?).",
+			"The Hermes dashboard is unreachable (is the hermes-dashboard service running?).",
 			DashboardErrorCode.Unreachable
 		);
 	}
@@ -133,8 +133,8 @@ async function once<T>(path: string, opts: CallOptions): Promise<T> {
 		if (res.status === 401 || res.status === 403) {
 			throw new DashboardError(
 				res.status,
-				'Le dashboard Hermes a refusé le jeton. Vérifiez HERMES_DASHBOARD_TOKEN ' +
-					'contre HERMES_DASHBOARD_SESSION_TOKEN dans ~/.hermes/dashboard.env.',
+				'The Hermes dashboard refused the token. Check HERMES_DASHBOARD_TOKEN ' +
+					'against HERMES_DASHBOARD_SESSION_TOKEN in ~/.hermes/dashboard.env.',
 				DashboardErrorCode.Unauthorized
 			);
 		}
@@ -143,7 +143,7 @@ async function once<T>(path: string, opts: CallOptions): Promise<T> {
 			res.status,
 			(typeof detail === 'string' ? detail : detail?.[0]?.msg) ||
 				text ||
-				`Le dashboard Hermes a renvoyé HTTP ${res.status}.`,
+				`The Hermes dashboard returned HTTP ${res.status}.`,
 			DashboardErrorCode.Failed
 		);
 	}

@@ -23,13 +23,13 @@ export interface ParsedSchedule {
 	kind: ScheduleKind | null;
 	/** French preview of when it runs. Empty when invalid. */
 	display: string;
-	/** French reason, when invalid. Empty otherwise. */
+	/** Human reason, when invalid. Empty otherwise. */
 	error: string;
 }
 
 const INVALID_HINT =
-	"Formats acceptés : « 30m », « 2h », « 1d » (une fois), « every 30m » (répété), " +
-	'« 0 9 * * * » (cron) ou « 2026-08-11T09:00 » (date précise).';
+	'Accepted formats: "30m", "2h", "1d" (once), "every 30m" (repeating), ' +
+	'"0 9 * * *" (cron) or "2026-08-11T09:00" (exact date).';
 
 const DURATION_RE = /^(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)$/;
 
@@ -44,12 +44,12 @@ export function parseDuration(input: string): number | null {
 	return minutes > 0 ? minutes : null;
 }
 
-/** "90" -> "1 h 30", for an interval preview. */
+/** "90" -> "1h 30m", for an interval preview. */
 export function humanMinutes(minutes: number): string {
 	if (minutes < 60) return `${minutes} min`;
-	if (minutes % 1440 === 0) return `${minutes / 1440} j`;
-	if (minutes % 60 === 0) return `${minutes / 60} h`;
-	return `${Math.floor(minutes / 60)} h ${minutes % 60}`;
+	if (minutes % 1440 === 0) return minutes === 1440 ? '1 day' : `${minutes / 1440} days`;
+	if (minutes % 60 === 0) return minutes === 60 ? '1 hour' : `${minutes / 60} hours`;
+	return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
 const CRON_FIELD_RE = /^[\d*\-,/]+$/;
@@ -114,7 +114,7 @@ function parseNaiveIso(input: string): Date | null {
 }
 
 export function formatDateTime(date: Date): string {
-	return date.toLocaleString('fr-FR', {
+	return date.toLocaleString('en-GB', {
 		day: 'numeric',
 		month: 'short',
 		hour: '2-digit',
@@ -129,31 +129,31 @@ export function formatDateTime(date: Date): string {
  */
 export function parseSchedule(input: string, now: Date = new Date()): ParsedSchedule {
 	const raw = input.trim();
-	if (!raw) return { kind: null, display: '', error: 'Indiquez quand la tâche doit tourner.' };
+	if (!raw) return { kind: null, display: '', error: 'Say when the task should run.' };
 
 	if (raw.toLowerCase().startsWith('every ')) {
 		const minutes = parseDuration(raw.slice(6));
 		if (minutes === null) {
-			return { kind: null, display: '', error: `Intervalle illisible. ${INVALID_HINT}` };
+			return { kind: null, display: '', error: `Unreadable interval. ${INVALID_HINT}` };
 		}
-		return { kind: 'interval', display: `toutes les ${humanMinutes(minutes)}`, error: '' };
+		return { kind: 'interval', display: `every ${humanMinutes(minutes)}`, error: '' };
 	}
 
 	const parts = raw.split(/\s+/);
 	if (parts.length >= 5 && parts.slice(0, 5).every((p) => CRON_FIELD_RE.test(p))) {
 		const bad = CRON_BOUNDS.findIndex(([min, max], i) => !cronFieldValid(parts[i], min, max));
 		if (bad >= 0) {
-			const names = ['minute', 'heure', 'jour du mois', 'mois', 'jour de la semaine'];
+			const names = ['minute', 'hour', 'day of month', 'month', 'day of week'];
 			return {
 				kind: null,
 				display: '',
-				error: `Expression cron invalide : le champ « ${names[bad]} » (${parts[bad]}) est hors limites.`
+				error: `Invalid cron expression: the "${names[bad]}" field (${parts[bad]}) is out of range.`
 			};
 		}
 		const human = humanCron(raw);
 		return {
 			kind: 'cron',
-			display: human || `selon la règle cron « ${raw} »`,
+			display: human || `on the cron rule "${raw}"`,
 			error: ''
 		};
 	}
@@ -161,12 +161,12 @@ export function parseSchedule(input: string, now: Date = new Date()): ParsedSche
 	if (raw.includes('T') || /^\d{4}-\d{2}-\d{2}/.test(raw)) {
 		const date = parseNaiveIso(raw);
 		if (!date) {
-			return { kind: null, display: '', error: `Date illisible. ${INVALID_HINT}` };
+			return { kind: null, display: '', error: `Unreadable date. ${INVALID_HINT}` };
 		}
 		if (date.getTime() <= now.getTime()) {
-			return { kind: null, display: '', error: 'Cette date est déjà passée.' };
+			return { kind: null, display: '', error: 'This date is already in the past.' };
 		}
-		return { kind: 'once', display: `une fois, le ${formatDateTime(date)}`, error: '' };
+		return { kind: 'once', display: `once, on ${formatDateTime(date)}`, error: '' };
 	}
 
 	const minutes = parseDuration(raw);
@@ -174,12 +174,12 @@ export function parseSchedule(input: string, now: Date = new Date()): ParsedSche
 		const at = new Date(now.getTime() + minutes * 60_000);
 		return {
 			kind: 'once',
-			display: `une fois, dans ${humanMinutes(minutes)} (vers ${formatDateTime(at)})`,
+			display: `once, in ${humanMinutes(minutes)} (around ${formatDateTime(at)})`,
 			error: ''
 		};
 	}
 
-	return { kind: null, display: '', error: `Horaire non reconnu. ${INVALID_HINT}` };
+	return { kind: null, display: '', error: `Schedule not recognised. ${INVALID_HINT}` };
 }
 
 // ---------------------------------------------------------------------------
@@ -214,28 +214,28 @@ export interface ScheduleSpec {
 }
 
 export const SCHEDULE_MODES: { value: ScheduleMode; label: string }[] = [
-	{ value: 'daily', label: 'Chaque jour' },
-	{ value: 'weekly', label: 'Chaque semaine' },
-	{ value: 'monthly', label: 'Chaque mois' },
-	{ value: 'interval', label: 'À intervalle' },
-	{ value: 'once', label: 'Une seule fois' },
+	{ value: 'daily', label: 'Every day' },
+	{ value: 'weekly', label: 'Every week' },
+	{ value: 'monthly', label: 'Every month' },
+	{ value: 'interval', label: 'At an interval' },
+	{ value: 'once', label: 'Just once' },
 	{ value: 'advanced', label: 'Expression' }
 ];
 
-/** Cron numbering, French labels, week starting on Monday. */
+/** Cron numbering, English labels, week starting on Monday. */
 export const WEEKDAYS: { value: number; label: string }[] = [
-	{ value: 1, label: 'lundi' },
-	{ value: 2, label: 'mardi' },
-	{ value: 3, label: 'mercredi' },
-	{ value: 4, label: 'jeudi' },
-	{ value: 5, label: 'vendredi' },
-	{ value: 6, label: 'samedi' },
-	{ value: 0, label: 'dimanche' }
+	{ value: 1, label: 'Monday' },
+	{ value: 2, label: 'Tuesday' },
+	{ value: 3, label: 'Wednesday' },
+	{ value: 4, label: 'Thursday' },
+	{ value: 5, label: 'Friday' },
+	{ value: 6, label: 'Saturday' },
+	{ value: 0, label: 'Sunday' }
 ];
 
 /** Cron accepts both 0 and 7 for Sunday; croniter does, so this must too. */
 export function weekdayLabel(value: number): string {
-	if (value === 7) return 'dimanche';
+	if (value === 7) return 'Sunday';
 	return WEEKDAYS.find((d) => d.value === value)?.label ?? '';
 }
 
@@ -357,7 +357,7 @@ export function specFromExpression(input: string, now: Date = new Date()): Sched
 }
 
 /**
- * A cron expression in French, when it has a shape worth naming.
+ * A cron expression in English, when it has a shape worth naming.
  *
  * Returns '' for anything else — the caller then shows the expression itself,
  * which is more honest than an approximate translation.
@@ -370,25 +370,25 @@ export function humanCron(expr: string): string {
 	const hour = asNumber(ho);
 
 	if (minute !== null && hour !== null && minute < 60 && hour < 24 && mon === '*') {
-		const at = `${pad2(hour)} h ${pad2(minute)}`;
-		if (dom === '*' && dow === '*') return `chaque jour à ${at}`;
+		const at = `${pad2(hour)}:${pad2(minute)}`;
+		if (dom === '*' && dow === '*') return `every day at ${at}`;
 		const weekday = asNumber(dow);
 		if (dom === '*' && weekday !== null && weekday <= 7) {
-			return `chaque ${weekdayLabel(weekday)} à ${at}`;
+			return `every ${weekdayLabel(weekday)} at ${at}`;
 		}
 		const monthday = asNumber(dom);
 		if (dow === '*' && monthday !== null && monthday >= 1 && monthday <= 31) {
-			return `le ${monthday} de chaque mois à ${at}`;
+			return `on day ${monthday} of every month at ${at}`;
 		}
 	}
 
 	if (ho === '*' && dom === '*' && mon === '*' && dow === '*' && mi.startsWith('*/')) {
 		const step = asNumber(mi.slice(2));
-		if (step && step < 60) return `toutes les ${humanMinutes(step)}`;
+		if (step && step < 60) return `every ${humanMinutes(step)}`;
 	}
 	if (minute !== null && dom === '*' && mon === '*' && dow === '*' && ho.startsWith('*/')) {
 		const step = asNumber(ho.slice(2));
-		if (step && step < 24) return `toutes les ${humanMinutes(step * 60)}, à la minute ${minute}`;
+		if (step && step < 24) return `every ${humanMinutes(step * 60)}, at minute ${minute}`;
 	}
 	return '';
 }
@@ -404,10 +404,10 @@ export function humanCron(expr: string): string {
  * worth more than hoping every instruction repeats it.
  */
 export const JOB_PROMPT_HEADER = [
-	'## Ta tâche planifiée',
-	"Le planificateur de Yadai déclenche cette tâche tout seul : il n'y a ni conversation précédente, ni personne pour répondre à une question pendant l'exécution. Va au bout, et rends un résultat qui se comprend seul.",
+	'## Your scheduled task',
+	"Yadai's scheduler triggers this task on its own: there is no previous conversation, and nobody to answer a question while it runs. See it through, and return a result that stands on its own.",
 	'',
-	'Voici la tâche :'
+	'Here is the task:'
 ].join('\n');
 
 /** Characters the header costs, blank-line joins included. */
@@ -457,22 +457,22 @@ export function composeJobPrompt(persona: string, instruction: string): Composed
 /** Ready-made tasks — a first job in two taps rather than a blank form. */
 export const JOB_TEMPLATES: { label: string; name: string; instruction: string }[] = [
 	{
-		label: 'Résumé du matin',
-		name: 'Résumé du matin',
+		label: 'Morning briefing',
+		name: 'Morning briefing',
 		instruction:
-			"Fais le point du jour en dix lignes maximum : la météo du jour ici, l'état du Raspberry Pi (charge, espace disque, services en échec), et ce qui mérite mon attention. Termine par une seule action recommandée."
+			"Give me today's briefing in ten lines at most: today's weather here, the state of the Raspberry Pi (load, disk space, failed services), and what deserves my attention. End with a single recommended action."
 	},
 	{
-		label: 'Veille du soir',
-		name: 'Veille du soir',
+		label: 'Evening watch',
+		name: 'Evening watch',
 		instruction:
-			"Cherche les nouveautés du jour sur mes sujets techniques (self-hosting, IA locale, Raspberry Pi) et résume-les en cinq puces sourcées. Ignore ce qui n'est qu'une annonce commerciale."
+			"Find today's news on my tech topics (self-hosting, local AI, Raspberry Pi) and summarise it in five sourced bullet points. Skip anything that is just a marketing announcement."
 	},
 	{
-		label: 'Sauvegarde vérifiée',
-		name: 'Vérification des sauvegardes',
+		label: 'Backup check',
+		name: 'Backup check',
 		instruction:
-			"Vérifie que les sauvegardes du Pi de la nuit sont bien passées : la dernière archive présente, sa date, sa taille, et l'espace disque restant. Si quelque chose cloche, dis-le en premier et explique quoi faire."
+			"Check that last night's Pi backups went through: the latest archive present, its date, its size, and the disk space left. If something is off, say so first and explain what to do."
 	}
 ];
 
@@ -487,8 +487,8 @@ export const JOB_TEMPLATES: { label: string; name: string; instruction: string }
  * not a string — rendering it directly prints "[object Object]".
  *
  * The structured fields come first, not `schedule_display`: upstream builds
- * that string in English and in raw minutes ("every 720m", "once at
- * 2026-12-31 23:59"), which has no place in this interface. It stays as the
+ * that string in raw minutes ("every 720m", "once at 2026-12-31 23:59"),
+ * which reads worse than what the structured fields give. It stays as the
  * fallback for shapes we don't recognise.
  */
 export function scheduleDisplay(job: HermesJob): string {
@@ -497,14 +497,14 @@ export function scheduleDisplay(job: HermesJob): string {
 	if (schedule && typeof schedule === 'object') {
 		const kind = schedule.kind;
 		if (kind === 'interval' && typeof schedule.minutes === 'number') {
-			return `toutes les ${humanMinutes(schedule.minutes)}`;
+			return `every ${humanMinutes(schedule.minutes)}`;
 		}
 		if (kind === 'cron' && typeof schedule.expr === 'string' && schedule.expr) {
 			return humanCron(schedule.expr) || schedule.expr;
 		}
 		if (kind === 'once' && typeof schedule.run_at === 'string') {
 			const date = new Date(schedule.run_at);
-			if (!Number.isNaN(date.getTime())) return `une fois, le ${formatDateTime(date)}`;
+			if (!Number.isNaN(date.getTime())) return `once, on ${formatDateTime(date)}`;
 		}
 	}
 
@@ -579,28 +579,28 @@ export function jobState(job: HermesJob): JobStateBadge {
 	const state = typeof job.state === 'string' ? job.state : job.enabled === false ? 'paused' : '';
 	switch (state) {
 		case 'paused':
-			return { key: 'paused', icon: 'pause', label: 'En pause' };
+			return { key: 'paused', icon: 'pause', label: 'Paused' };
 		case 'completed':
-			return { key: 'completed', icon: 'check', label: 'Terminée' };
+			return { key: 'completed', icon: 'check', label: 'Finished' };
 		case 'error':
-			return { key: 'error', icon: 'warning', label: 'En erreur' };
+			return { key: 'error', icon: 'warning', label: 'Failing' };
 		case 'running':
-			return { key: 'running', icon: 'activity', label: 'En cours' };
+			return { key: 'running', icon: 'activity', label: 'Running' };
 		default:
-			return { key: 'scheduled', icon: 'clock', label: 'Programmée' };
+			return { key: 'scheduled', icon: 'clock', label: 'Scheduled' };
 	}
 }
 
-/** "dans 2 h", "10 août 09:00", or '' when there is no next run. */
+/** "in 2 hours", "Aug 10, 09:00 AM", or '' when there is no next run. */
 export function nextRunLabel(job: HermesJob, now: Date = new Date()): string {
 	const raw = job.next_run_at;
 	if (typeof raw !== 'string' || !raw) return '';
 	const date = new Date(raw);
 	if (Number.isNaN(date.getTime())) return '';
 	const minutes = Math.round((date.getTime() - now.getTime()) / 60_000);
-	if (minutes < 0) return 'imminente';
-	if (minutes < 1) return "dans moins d'une minute";
-	if (minutes < 60 * 18) return `dans ${humanMinutes(minutes)}`;
+	if (minutes < 0) return 'any moment';
+	if (minutes < 1) return 'in under a minute';
+	if (minutes < 60 * 18) return `in ${humanMinutes(minutes)}`;
 	return formatDateTime(date);
 }
 
@@ -610,7 +610,7 @@ export function nextRunLabel(job: HermesJob, now: Date = new Date()): string {
  * `last_status` values come from `mark_job_run` upstream — "ok" / "error", plus
  * the two the scheduler writes itself ("blocked_config" when the job's provider
  * config is unusable, "no_change" for a monitor tick that suppressed the run).
- * An unknown value is shown as "terminée" rather than guessed at.
+ * An unknown value is shown as "finished" rather than guessed at.
  */
 export function lastRunLabel(job: HermesJob): string {
 	const raw = job.last_run_at;
@@ -621,17 +621,17 @@ export function lastRunLabel(job: HermesJob): string {
 	const status = typeof job.last_status === 'string' ? job.last_status : '';
 	const outcome =
 		status === 'ok'
-			? 'réussie'
+			? 'succeeded'
 			: status === 'error'
-				? 'échouée'
+				? 'failed'
 				: status === 'blocked_config'
-					? 'bloquée (configuration)'
+					? 'blocked (configuration)'
 					: status === 'no_change'
-						? 'rien de neuf'
+						? 'nothing new'
 						: status
-							? 'terminée'
+							? 'finished'
 							: '';
-	return `dernière ${formatDateTime(date)}${outcome ? ` · ${outcome}` : ''}`;
+	return `last ${formatDateTime(date)}${outcome ? ` · ${outcome}` : ''}`;
 }
 
 /** Runnable jobs first, each group soonest-first; undated rows go last. */
@@ -662,25 +662,24 @@ export interface DeliveryTarget {
 export function usableTargets(targets: DeliveryTarget[]): DeliveryTarget[] {
 	const kept = targets.filter((t) => t.id === 'local' || t.home_target_set);
 	if (kept.some((t) => t.id === 'local')) return kept;
-	return [{ id: 'local', name: 'Local (enregistré seulement)' }, ...kept];
+	return [{ id: 'local', name: 'Local (save only)' }, ...kept];
 }
 
 /**
  * Label for a delivery choice.
  *
- * Upstream names are English ("Local (save only)"); only `local` needs
- * translating — every other id is a platform name that reads the same in both
- * languages.
+ * Upstream already names `local` "Local (save only)"; it is pinned here so a
+ * missing name still reads right. Every other id is a platform name.
  */
 export function targetLabel(target: DeliveryTarget): string {
-	if (target.id === 'local') return 'Local (enregistré seulement)';
+	if (target.id === 'local') return 'Local (save only)';
 	return target.name || target.id;
 }
 
-/** French one-liner for what a delivery choice actually does. */
+/** One-liner for what a delivery choice actually does. */
 export function deliveryHint(id: string): string {
 	if (id === 'local') {
-		return "Rien n'est envoyé : Yadai exécute la tâche et garde la sortie de son côté.";
+		return 'Nothing is sent: Yadai runs the task and keeps the output on its side.';
 	}
-	return `Le résultat sera envoyé sur ${id}, sur le canal configuré pour Yadai.`;
+	return `The result will be sent to ${id}, on the channel configured for Yadai.`;
 }

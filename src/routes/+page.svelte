@@ -69,7 +69,7 @@
 
 	/** A chunk that cannot be fetched must say so, not leave a dead button. */
 	function reveal(panel: { load: () => Promise<void> }) {
-		void panel.load().catch(() => toasts.error("Ce panneau n'a pas pu être chargé. Réessayez."));
+		void panel.load().catch(() => toasts.error('This panel could not be loaded. Try again.'));
 	}
 
 	$effect(() => {
@@ -86,10 +86,10 @@
 	});
 
 	const SUGGESTIONS = [
-		"Quel est l'état du Raspberry Pi (CPU, RAM, disque) ?",
-		'Résume les nouveautés de ma veille technique du jour.',
-		'Cherche les prochains trains pour Tel Aviv.',
-		'Liste les conteneurs Docker qui tournent et leur santé.'
+		'How is the Raspberry Pi doing (CPU, RAM, disk)?',
+		"Summarise today's news from my tech watch.",
+		'Find the next trains to Tel Aviv.',
+		'List the running Docker containers and their health.'
 	];
 
 	onMount(() => {
@@ -240,7 +240,7 @@
 		const text = chat.toMarkdown();
 		try {
 			await navigator.clipboard.writeText(text);
-			toasts.success('Conversation copiée en markdown.');
+			toasts.success('Conversation copied as markdown.');
 		} catch {
 			// Clipboard is blocked outside a secure context or without a user
 			// gesture on some browsers — fall back to a download.
@@ -259,29 +259,29 @@
 	});
 
 	const commands = $derived([
-		{ id: 'new', label: 'Nouvelle discussion', hint: `${mod} ⇧O`, run: () => chat.newSession() },
-		{ id: 'status', label: 'État du système', hint: `${mod} /`, run: () => (statusOpen = true) },
-		{ id: 'skills', label: 'Modifier les skills', run: () => (skillsOpen = true) },
-		{ id: 'agents', label: "Équipe d'agents", run: () => (agentsOpen = true) },
-		{ id: 'jobs', label: 'Tâches planifiées', run: () => (jobsOpen = true) },
-		{ id: 'providers', label: 'Providers (clés API et comptes)', run: () => (providersOpen = true) },
-		{ id: 'usage', label: 'Consommation (tokens, coût, outils)', run: () => (usageOpen = true) },
-		{ id: 'export', label: 'Exporter la conversation (markdown)', run: exportMarkdown },
-		{ id: 'reload', label: 'Recharger la conversation', run: () => chat.reload() },
+		{ id: 'new', label: 'New chat', hint: `${mod} ⇧O`, run: () => chat.newSession() },
+		{ id: 'status', label: 'System status', hint: `${mod} /`, run: () => (statusOpen = true) },
+		{ id: 'skills', label: 'Edit skills', run: () => (skillsOpen = true) },
+		{ id: 'agents', label: 'Agent team', run: () => (agentsOpen = true) },
+		{ id: 'jobs', label: 'Scheduled tasks', run: () => (jobsOpen = true) },
+		{ id: 'providers', label: 'Providers (API keys and accounts)', run: () => (providersOpen = true) },
+		{ id: 'usage', label: 'Usage (tokens, cost, tools)', run: () => (usageOpen = true) },
+		{ id: 'export', label: 'Export conversation (markdown)', run: exportMarkdown },
+		{ id: 'reload', label: 'Reload conversation', run: () => chat.reload() },
 		...(chat.sessionId
-			? [{ id: 'fork', label: 'Brancher la conversation', run: () => chat.forkSession(chat.sessionId!) }]
+			? [{ id: 'fork', label: 'Branch conversation', run: () => chat.forkSession(chat.sessionId!) }]
 			: []),
-		...(chat.canResend ? [{ id: 'resend', label: 'Renvoyer le dernier message', run: () => chat.resend() }] : []),
+		...(chat.canResend ? [{ id: 'resend', label: 'Resend last message', run: () => chat.resend() }] : []),
 		// One entry per saved prompt: ⌘K then a few letters is the fastest way
 		// to reuse one on the desktop.
 		...prompts.items.map((p) => ({
 			id: `prompt:${p.id}`,
-			label: `Prompt : ${p.title}`,
+			label: `Prompt: ${p.title}`,
 			run: () => composer?.insert(p.text)
 		})),
-		{ id: 'appearance', label: 'Apparence (palette et accents)', run: () => (themeOpen = true) },
-		{ id: 'theme', label: 'Basculer le thème clair / sombre', run: () => theme.toggleMode() },
-		{ id: 'shortcuts', label: 'Raccourcis clavier', hint: '?', run: () => (shortcutsOpen = true) }
+		{ id: 'appearance', label: 'Appearance (palette and accents)', run: () => (themeOpen = true) },
+		{ id: 'theme', label: 'Toggle light / dark theme', run: () => theme.toggleMode() },
+		{ id: 'shortcuts', label: 'Keyboard shortcuts', hint: '?', run: () => (shortcutsOpen = true) }
 	]);
 
 	function onKeydown(event: KeyboardEvent) {
@@ -392,12 +392,12 @@
 
 	<main>
 		<header>
-			<button class="burger" onclick={() => (sidebarOpen = true)} aria-label="Discussions">
+			<button class="burger" onclick={() => (sidebarOpen = true)} aria-label="Chats">
 				<Icon name="menu" size={20} />
 			</button>
 			<div class="heading">
 				<h1>{title}</h1>
-				{#if usage && !narrow}<span class="usage" title="tokens entrée / sortie et coût estimé"
+				{#if usage && !narrow}<span class="usage" title="input / output tokens and estimated cost"
 						>{usage}</span
 					>{/if}
 			</div>
@@ -405,17 +405,19 @@
 				<button
 					class="icon"
 					onclick={() => (paletteOpen = true)}
-					aria-label="Rechercher un message, une conversation, une action (⌘K)"
+					aria-label="Search messages, conversations and actions (⌘K)"
 				>
 					<Icon name="search" />
 				</button>
-				<AgentPicker onmanage={() => (agentsOpen = true)} />
-				<ModelPicker />
+				<div class="pickers">
+					<AgentPicker onmanage={() => (agentsOpen = true)} />
+					<ModelPicker />
+				</div>
 				<!-- Not on a phone: five controls beside the title left it three
 				     characters wide. Apparence is in the drawer's footer and in
 				     the ⌘K palette, both one tap away; the name of the
 				     conversation you are reading has nowhere else to go. -->
-				<button class="icon theme" onclick={() => (themeOpen = true)} aria-label="Apparence">
+				<button class="icon theme" onclick={() => (themeOpen = true)} aria-label="Appearance">
 					<Icon name="contrast" />
 				</button>
 			</div>
@@ -423,8 +425,8 @@
 
 		{#if chat.connected === false}
 			<div class="banner" role="alert">
-				<span><Icon name="warning" size={15} /> Yadai est injoignable — nouvelle tentative en cours.</span>
-				<button onclick={() => chat.refreshHealth()}>Réessayer</button>
+				<span><Icon name="warning" size={15} /> Yadai is unreachable — retrying.</span>
+				<button onclick={() => chat.refreshHealth()}>Retry</button>
 			</div>
 		{/if}
 
@@ -435,7 +437,7 @@
 		<div class="scroll" bind:this={scroller} onscroll={onScroll}>
 			<div class="thread">
 				{#if chat.loadingHistory}
-					<p class="status">Chargement…</p>
+					<p class="status">Loading…</p>
 				{:else if chat.messages.length === 0}
 					<div class="welcome">
 						<!-- The hero card: the one saturated surface of the app, carrying
@@ -449,15 +451,15 @@
 							<h2>{activeAgent ? activeAgent.name : 'Yadai'}</h2>
 							<p>
 								{#if activeAgent}
-									{activeAgent.role || 'Agent personnalisé.'}
+									{activeAgent.role || 'Custom agent.'}
 								{:else}
-									Agent complet — terminal, navigateur, mémoire, skills et serveurs MCP —
-									exécuté sur le Raspberry&nbsp;Pi.
+									A full agent — terminal, browser, memory, skills and MCP servers —
+									running on your Raspberry&nbsp;Pi.
 								{/if}
 							</p>
 							{#if chat.toolCount > 0}
 								<p class="hero-meta">
-									{chat.toolCount} outils
+									{chat.toolCount} tools
 									{#if chat.mcpTools.length}· {chat.mcpTools.length} via MCP{/if}
 									{#if chat.skills.length}· {chat.skills.length} skills{/if}
 								</p>
@@ -483,20 +485,20 @@
 								<button
 									class="agent-chip"
 									class:sel={!chat.activeAgentId}
-									onclick={() => chat.setAgent('')}>Sans agent</button
+									onclick={() => chat.setAgent('')}>No agent</button
 								>
-								<button class="agent-chip ghost" onclick={() => (agentsOpen = true)}>＋ Gérer</button>
+								<button class="agent-chip ghost" onclick={() => (agentsOpen = true)}>＋ Manage</button>
 							</div>
 							{#if activeTeam.length > 0}
 								<p class="team">
-									Chef d'équipe : peut confier du travail à {activeTeam
+									Team lead: can hand work to {activeTeam
 										.map((a) => a.name)
 										.join(', ')} via <code>delegate_task</code>.
 								</p>
 							{/if}
 						{/if}
 
-						<p class="lead">Pour commencer</p>
+						<p class="lead">Get started</p>
 						<div class="chips">
 							{#each SUGGESTIONS as suggestion (suggestion)}
 								<button onclick={() => chat.send(suggestion)}>{suggestion}</button>
@@ -521,7 +523,7 @@
 		</div>
 
 		{#if !pinnedToBottom && chat.messages.length > 0}
-			<button class="to-bottom" onclick={scrollToBottom} aria-label="Aller en bas">
+			<button class="to-bottom" onclick={scrollToBottom} aria-label="Jump to bottom">
 				<Icon name="arrowDown" />
 			</button>
 		{/if}
@@ -533,8 +535,8 @@
 				     disclaimer steals a row from the thread. The half that is a
 				     warning stays; the half that says where it runs is on the
 				     status panel anyway. -->
-				{#if !narrow}Les outils s'exécutent sur le Pi.{/if} Vérifiez les commandes sensibles.
-				<button class="link" onclick={() => (shortcutsOpen = true)}>Raccourcis</button>
+				{#if !narrow}Tools run on the Pi.{/if} Double-check sensitive commands.
+				<button class="link" onclick={() => (shortcutsOpen = true)}>Shortcuts</button>
 			</p>
 		</div>
 	</main>
@@ -662,7 +664,8 @@
 		font-size: 11px;
 		color: var(--text-faint);
 	}
-	.head-actions {
+	.head-actions,
+	.pickers {
 		display: flex;
 		align-items: center;
 		gap: 6px;
@@ -774,6 +777,12 @@
 		   deepened until it passes 4.5:1 against white, and the far end only
 		   deepens it further toward the palette's darkest tone. */
 		background: linear-gradient(142deg, var(--user-bubble) 0%, var(--hero-2) 100%);
+		/* Interpolated in OKLCH, not sRGB: two accents of different hues
+		   (Terracotta's orange and sage) meet through a grey-brown in a
+		   straight RGB blend, and through warm gold here — the midpoint keeps
+		   the chroma of both ends. Same support floor as `color-mix`
+		   (point 19); the line above is the fallback. */
+		background: linear-gradient(in oklch 142deg, var(--user-bubble) 0%, var(--hero-2) 100%);
 		color: var(--user-ink);
 		box-shadow: var(--shadow);
 	}
@@ -939,12 +948,27 @@
 		   it was measured at *zero* pixels wide, squeezed out by the token
 		   counter beside it (now hidden here) and by controls that would not
 		   shrink. */
+		/* …and on 390px even that was not enough: the model chip ran off the
+		   right edge and the title kept five letters. So the phone header is
+		   two rows — burger, title and search on the first, the two pickers
+		   on a row of their own beneath, where a model id has room to be
+		   read. Their menus open as bottom sheets (see the pickers), so
+		   neither depends on where its chip lands. */
+		header {
+			flex-wrap: wrap;
+			row-gap: 8px;
+		}
 		.head-actions {
-			flex: 0 0 auto;
+			display: contents;
 		}
 		.heading {
-			flex: 1 1 auto;
-			min-width: 60px;
+			flex: 1 1 0;
+			min-width: 0;
+		}
+		.pickers {
+			order: 1;
+			flex: 1 0 100%;
+			min-width: 0;
 		}
 		.icon.theme {
 			display: none;

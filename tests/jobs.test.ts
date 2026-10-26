@@ -24,7 +24,7 @@ import {
 } from '../src/lib/jobs.ts';
 import type { HermesJob } from '../src/lib/types.ts';
 
-// A fixed clock so "dans 30 min" never depends on when the suite runs.
+// A fixed clock so "in 30 min" never depends on when the suite runs.
 const NOW = new Date(2026, 7, 10, 9, 0, 0); // 10 August 2026, 09:00 local
 
 // ---------------------------------------------------------------------------
@@ -52,9 +52,9 @@ test('parseDuration rejects what upstream rejects', () => {
 
 test('humanMinutes keeps round values readable', () => {
 	assert.equal(humanMinutes(30), '30 min');
-	assert.equal(humanMinutes(120), '2 h');
-	assert.equal(humanMinutes(1440), '1 j');
-	assert.equal(humanMinutes(90), '1 h 30');
+	assert.equal(humanMinutes(120), '2 hours');
+	assert.equal(humanMinutes(1440), '1 day');
+	assert.equal(humanMinutes(90), '1h 30m');
 });
 
 // ---------------------------------------------------------------------------
@@ -77,7 +77,7 @@ test('parseSchedule follows the upstream precedence: "every" wins over cron', ()
 test('parseSchedule previews a relative one-shot against the given clock', () => {
 	const parsed = parseSchedule('2h', NOW);
 	assert.equal(parsed.kind, 'once');
-	assert.match(parsed.display, /dans 2 h/);
+	assert.match(parsed.display, /in 2 hours/);
 	assert.equal(parsed.error, '');
 });
 
@@ -111,7 +111,7 @@ test('parseSchedule accepts the cron shapes croniter accepts', () => {
 
 test('parseSchedule refuses a timestamp in the past, which upstream rejects too', () => {
 	assert.equal(parseSchedule('2020-01-01T09:00', NOW).kind, null);
-	assert.match(parseSchedule('2020-01-01T09:00', NOW).error, /passée/);
+	assert.match(parseSchedule('2020-01-01T09:00', NOW).error, /past/);
 });
 
 test('parseSchedule reads a naive timestamp as wall clock, not UTC', () => {
@@ -139,18 +139,18 @@ test('scheduleDisplay prefers the structured fields over the English display', (
 			schedule: { kind: 'interval', minutes: 720, display: 'every 720m' },
 			schedule_display: 'every 720m'
 		}),
-		'toutes les 12 h'
+		'every 12 hours'
 	);
 	assert.equal(
 		scheduleDisplay({ schedule: { kind: 'cron', expr: '0 9 * * *' }, schedule_display: '0 9 * * *' }),
-		'chaque jour à 09 h 00'
+		'every day at 09:00'
 	);
 	assert.match(
 		scheduleDisplay({
 			schedule: { kind: 'once', run_at: '2026-12-31T23:59:00+03:00' },
 			schedule_display: 'once at 2026-12-31 23:59'
 		}),
-		/^une fois, le /
+		/^once, on /
 	);
 });
 
@@ -172,10 +172,10 @@ test('jobState trusts the reconciled state over the enabled flag', () => {
 
 test('nextRunLabel switches from relative to absolute past 18 hours', () => {
 	const soon = new Date(NOW.getTime() + 120 * 60_000).toISOString();
-	assert.match(nextRunLabel({ next_run_at: soon }, NOW), /dans 2 h/);
+	assert.match(nextRunLabel({ next_run_at: soon }, NOW), /in 2 hours/);
 
 	const later = new Date(NOW.getTime() + 40 * 3600_000).toISOString();
-	assert.doesNotMatch(nextRunLabel({ next_run_at: later }, NOW), /dans/);
+	assert.doesNotMatch(nextRunLabel({ next_run_at: later }, NOW), /\bin\b/);
 
 	assert.equal(nextRunLabel({}, NOW), '');
 	assert.equal(nextRunLabel({ next_run_at: null }, NOW), '');
@@ -216,7 +216,7 @@ test('usableTargets drops platforms with no configured home channel', () => {
 
 test('targetLabel translates the local choice and passes platforms through', () => {
 	// Upstream calls it "Local (save only)".
-	assert.equal(targetLabel({ id: 'local', name: 'Local (save only)' }), 'Local (enregistré seulement)');
+	assert.equal(targetLabel({ id: 'local', name: 'Local (save only)' }), 'Local (save only)');
 	assert.equal(targetLabel({ id: 'telegram', name: 'Telegram' }), 'Telegram');
 	assert.equal(targetLabel({ id: 'matrix' }), 'matrix');
 });
@@ -312,13 +312,13 @@ test('a schedule survives the round trip through the pickers', () => {
 });
 
 test('humanCron names the shapes the pickers produce, and only those', () => {
-	assert.equal(humanCron('30 8 * * *'), 'chaque jour à 08 h 30');
-	assert.equal(humanCron('0 19 * * 5'), 'chaque vendredi à 19 h 00');
-	assert.equal(humanCron('0 6 * * 0'), 'chaque dimanche à 06 h 00');
-	assert.equal(humanCron('0 6 * * 7'), 'chaque dimanche à 06 h 00');
-	assert.equal(humanCron('0 6 12 * *'), 'le 12 de chaque mois à 06 h 00');
-	assert.equal(humanCron('*/15 * * * *'), 'toutes les 15 min');
-	assert.equal(humanCron('0 */6 * * *'), 'toutes les 6 h, à la minute 0');
+	assert.equal(humanCron('30 8 * * *'), 'every day at 08:30');
+	assert.equal(humanCron('0 19 * * 5'), 'every Friday at 19:00');
+	assert.equal(humanCron('0 6 * * 0'), 'every Sunday at 06:00');
+	assert.equal(humanCron('0 6 * * 7'), 'every Sunday at 06:00');
+	assert.equal(humanCron('0 6 12 * *'), 'on day 12 of every month at 06:00');
+	assert.equal(humanCron('*/15 * * * *'), 'every 15 min');
+	assert.equal(humanCron('0 */6 * * *'), 'every 6 hours, at minute 0');
 	// Anything it cannot name honestly comes back empty, so the caller shows
 	// the expression itself.
 	assert.equal(humanCron('0 9-18 * * 1-5'), '');
@@ -353,12 +353,12 @@ test('an editable task is one whose schedule can be sent back up', () => {
 
 test('lastRunLabel translates the statuses upstream writes', () => {
 	const at = new Date(NOW.getTime() - 3600_000).toISOString();
-	assert.match(lastRunLabel({ last_run_at: at, last_status: 'ok' }), /réussie$/);
-	assert.match(lastRunLabel({ last_run_at: at, last_status: 'error' }), /échouée$/);
-	assert.match(lastRunLabel({ last_run_at: at, last_status: 'blocked_config' }), /bloquée/);
-	assert.match(lastRunLabel({ last_run_at: at, last_status: 'no_change' }), /rien de neuf$/);
+	assert.match(lastRunLabel({ last_run_at: at, last_status: 'ok' }), /succeeded$/);
+	assert.match(lastRunLabel({ last_run_at: at, last_status: 'error' }), /failed$/);
+	assert.match(lastRunLabel({ last_run_at: at, last_status: 'blocked_config' }), /blocked/);
+	assert.match(lastRunLabel({ last_run_at: at, last_status: 'no_change' }), /nothing new$/);
 	// An unknown status is reported as finished, not guessed at.
-	assert.match(lastRunLabel({ last_run_at: at, last_status: 'martien' }), /terminée$/);
+	assert.match(lastRunLabel({ last_run_at: at, last_status: 'martien' }), /finished$/);
 	assert.equal(lastRunLabel({ last_run_at: at }).includes('·'), false);
 	assert.equal(lastRunLabel({}), '');
 	assert.equal(lastRunLabel({ last_run_at: 'pas une date' }), '');

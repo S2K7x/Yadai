@@ -216,11 +216,11 @@
 				continue;
 			}
 			if (file.size > MAX_IMAGE_BYTES) {
-				flash(`« ${file.name} » ignoré : dépasse 4 Mo.`);
+				flash(`"${file.name}" skipped: larger than 4 MB.`);
 				continue;
 			}
 			if (totalBytes + file.size > MAX_TOTAL_BYTES) {
-				flash(`« ${file.name} » ignoré : le lot dépasserait 5 Mo au total.`);
+				flash(`"${file.name}" skipped: the batch would exceed 5 MB in total.`);
 				continue;
 			}
 			const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -252,8 +252,8 @@
 		const name = displayName(file.name);
 		if (file.size > MAX_TEXT_FILE_BYTES) {
 			flash(
-				`« ${name} » ignoré : ${formatBytes(file.size)}, au-delà des ` +
-					`${formatBytes(MAX_TEXT_FILE_BYTES)} lisibles d'un coup.`
+				`"${name}" skipped: ${formatBytes(file.size)}, beyond the ` +
+					`${formatBytes(MAX_TEXT_FILE_BYTES)} that can be read at once.`
 			);
 			return;
 		}
@@ -261,7 +261,7 @@
 		try {
 			content = await file.text();
 		} catch {
-			flash(`« ${name} » n'a pas pu être lu.`);
+			flash(`"${name}" could not be read.`);
 			return;
 		}
 		const result = inlineTextFile(file.name, content);
@@ -270,7 +270,7 @@
 			return;
 		}
 		insert(result.block);
-		flash(`« ${name} » inséré dans le message (${formatBytes(file.size)}).`);
+		flash(`"${name}" inserted into the message (${formatBytes(file.size)}).`);
 	}
 
 	function onPaste(event: ClipboardEvent) {
@@ -375,7 +375,7 @@
 	}
 
 	async function saveCurrent() {
-		if (await prompts.add(text)) toasts.success('Prompt enregistré.');
+		if (await prompts.add(text)) toasts.success('Prompt saved.');
 	}
 
 	async function submit() {
@@ -419,10 +419,10 @@
 			drafts.set(boundId, text);
 			autosize();
 			textarea?.focus();
-			flash('Message non envoyé : il est resté dans le composeur.');
+			flash('Message not sent: it is still in the composer.');
 		} else {
 			drafts.set(from, restoreDraft(drafts.get(from), payload));
-			flash('Message non envoyé : il est resté sur la conversation où il a été écrit.');
+			flash('Message not sent: it stayed on the conversation it was written in.');
 		}
 	}
 </script>
@@ -448,8 +448,8 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="palette prompts" bind:this={promptPanel} onkeydown={onPromptKeydown}>
 			<div class="p-head">
-				<span>Prompts enregistrés</span>
-				<button class="p-x" onclick={() => closePrompts(true)} aria-label="Fermer"><Icon name="close" size={14} /></button>
+				<span>Saved prompts</span>
+				<button class="p-x" onclick={() => closePrompts(true)} aria-label="Close"><Icon name="close" size={14} /></button>
 			</div>
 
 			{#if text.trim()}
@@ -458,7 +458,7 @@
 					onclick={saveCurrent}
 					disabled={prompts.saving || Boolean(prompts.loadError)}
 				>
-					＋ Enregistrer le message en cours
+					＋ Save the current message
 				</button>
 			{/if}
 
@@ -466,8 +466,8 @@
 				<input
 					class="p-filter"
 					bind:value={promptFilter}
-					placeholder="Filtrer…"
-					aria-label="Filtrer les prompts"
+					placeholder="Filter…"
+					aria-label="Filter prompts"
 				/>
 			{/if}
 
@@ -485,7 +485,7 @@
 							class="p-del"
 							onclick={() => prompts.remove(prompt.id)}
 							disabled={prompts.saving}
-							aria-label="Supprimer ce prompt"><Icon name="close" size={12} /></button
+							aria-label="Delete this prompt"><Icon name="close" size={12} /></button
 						>
 					</div>
 				{/each}
@@ -494,18 +494,18 @@
 					<!-- Never "Chargement…" here: a failed load is not a slow one, and
 					     saving on top of a library we could not read would replace it. -->
 					<p class="p-none p-fail">
-						La bibliothèque n'a pas pu être chargée, l'enregistrement est donc
-						bloqué pour ne rien effacer.<br />{prompts.loadError}
+						The library could not be loaded, so saving is blocked to avoid
+						erasing anything.<br />{prompts.loadError}
 					</p>
-					<button class="p-retry" onclick={() => prompts.reload()}>Réessayer</button>
+					<button class="p-retry" onclick={() => prompts.reload()}>Retry</button>
 				{:else if prompts.items.length === 0}
 					<p class="p-none">
 						{prompts.loaded
-							? 'Aucun prompt enregistré. Écrivez un message, puis enregistrez-le ici pour le retrouver sur tous vos appareils.'
-							: 'Chargement…'}
+							? 'No saved prompts. Write a message, then save it here to find it again on all your devices.'
+							: 'Loading…'}
 					</p>
 				{:else if promptMatches.length === 0}
-					<p class="p-none">Aucun prompt ne correspond.</p>
+					<p class="p-none">No prompt matches.</p>
 				{/if}
 			</div>
 		</div>
@@ -543,7 +543,7 @@
 				<div class="att">
 					<img src={att.dataUrl} alt={att.name} />
 					<button
-						aria-label="Retirer"
+						aria-label="Remove"
 						onclick={() => (attachments = attachments.filter((a) => a.id !== att.id))}
 						><Icon name="close" size={11} /></button
 					>
@@ -553,7 +553,7 @@
 	{/if}
 
 	<div class="row">
-		<label class="attach" title="Joindre une image ou un fichier texte">
+		<label class="attach" title="Attach an image or a text file">
 			<Icon name="paperclip" size={17} />
 			<!-- No `accept`: images are attached, anything textual is inlined into
 			     the message, and on iOS a narrow filter is what hides the Files
@@ -561,7 +561,7 @@
 			<input
 				type="file"
 				multiple
-				aria-label="Joindre une image ou un fichier texte"
+				aria-label="Attach an image or a text file"
 				onchange={(e) => {
 					const input = e.currentTarget;
 					if (input.files) addFiles(input.files);
@@ -581,8 +581,8 @@
 				togglePrompts();
 			}}
 			onkeydown={onPromptKeydown}
-			title="Prompts enregistrés"
-			aria-label="Prompts enregistrés"
+			title="Saved prompts"
+			aria-label="Saved prompts"
 			aria-haspopup="true"
 			aria-expanded={promptsOpen}><Icon name="bookmark" size={17} /></button
 		>
@@ -594,16 +594,16 @@
 			onkeydown={onKeydown}
 			onpaste={onPaste}
 			rows="1"
-			aria-label="Message à Yadai"
+			aria-label="Message to Yadai"
 			aria-controls={paletteOpen && paletteMatches.length ? 'composer-skills' : undefined}
 			aria-activedescendant={paletteOpen && paletteMatches[paletteIndex]
 				? `${SKILL_OPTION_ID}${paletteIndex}`
 				: undefined}
 			placeholder={chat.streaming
-				? 'Yadai travaille…'
+				? 'Yadai is working…'
 				: narrow
-					? 'Écrire à Yadai…'
-					: 'Écrire à Yadai…  (/ pour les skills)'}
+					? 'Message Yadai…'
+					: 'Message Yadai…  (/ for skills)'}
 		></textarea>
 
 		{#if chat.streaming}
@@ -612,8 +612,8 @@
 			<button
 				class="send stop"
 				onclick={() => chat.stop()}
-				aria-label="Arrêter l'affichage"
-				title="Arrêter l'affichage (l'agent termine en arrière-plan)"
+				aria-label="Stop display"
+				title="Stop display (the agent finishes in the background)"
 				><Icon name="stop" size={15} /></button
 			>
 		{:else}
@@ -621,8 +621,8 @@
 				class="send"
 				onclick={submit}
 				disabled={!text.trim() && attachments.length === 0}
-				aria-label="Envoyer le message"
-				title="Envoyer"><Icon name="arrowUp" size={19} /></button
+				aria-label="Send message"
+				title="Send"><Icon name="arrowUp" size={19} /></button
 			>
 		{/if}
 	</div>
@@ -727,8 +727,12 @@
 	.send:not(:disabled):hover {
 		transform: translateY(-1px);
 	}
+	/* An empty box: a quiet, neutral disc rather than the accent at a third
+	   of its strength, which read as a muddy, half-loaded colour on every
+	   palette. The accent arrives with the first character typed. */
 	.send:disabled {
-		opacity: 0.35;
+		background: var(--bg-hover);
+		color: var(--text-faint);
 		box-shadow: none;
 		cursor: default;
 	}

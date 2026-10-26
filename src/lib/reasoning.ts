@@ -87,11 +87,11 @@ export function reasoningModelOptions(
 
 const LABELS: Record<ReasoningEffort, string> = {
 	auto: 'Auto',
-	none: 'Aucun',
+	none: 'None',
 	minimal: 'Minimal',
-	low: 'Faible',
-	medium: 'Moyen',
-	high: 'Élevé',
+	low: 'Low',
+	medium: 'Medium',
+	high: 'High',
 	xhigh: 'Max'
 };
 
@@ -99,13 +99,13 @@ const LABELS: Record<ReasoningEffort, string> = {
 export const reasoningLabel = (effort: ReasoningEffort): string => LABELS[effort];
 
 const HINTS: Record<ReasoningEffort, string> = {
-	auto: 'Laisse Hermes décider, selon sa propre configuration',
-	none: 'Pas de réflexion préalable : le plus rapide',
-	minimal: 'Réflexion minimale',
-	low: 'Réflexion courte',
-	medium: 'Réflexion moyenne',
-	high: 'Réflexion longue : plus lent, plus cher',
-	xhigh: 'Réflexion maximale : nettement plus lent et plus cher'
+	auto: 'Let Hermes decide, from its own configuration',
+	none: 'No thinking first: the fastest',
+	minimal: 'Minimal thinking',
+	low: 'Short thinking',
+	medium: 'Moderate thinking',
+	high: 'Long thinking: slower, pricier',
+	xhigh: 'Maximum thinking: much slower and pricier'
 };
 
 /** What the chip's tooltip says. Every level costs time and jetons. */

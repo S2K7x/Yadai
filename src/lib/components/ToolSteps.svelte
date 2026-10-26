@@ -22,8 +22,8 @@
 	// interpolated: pasted into this string it read "terminal terminal…".
 	let summary = $derived(
 		active
-			? `${toolLabel(active.tool_name || 'travail en cours')}…`
-			: `${steps.length} étape${steps.length > 1 ? 's' : ''}`
+			? `${toolLabel(active.tool_name || 'working')}…`
+			: `${steps.length} step${steps.length > 1 ? 's' : ''}`
 	);
 
 	function argPreview(step: ToolStep): string {
@@ -58,7 +58,7 @@
 							<div class="name">
 								{toolLabel(step.tool_name)}
 								{#if step.status === 'running'}<span class="dots">…</span>{/if}
-								{#if step.status === 'failed'}<span class="badge">échec</span>{/if}
+								{#if step.status === 'failed'}<span class="badge">failed</span>{/if}
 							</div>
 							{#if argPreview(step)}
 								<div class="args">{argPreview(step)}</div>

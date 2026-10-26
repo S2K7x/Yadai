@@ -44,23 +44,23 @@ export interface SystemRow {
 /**
  * How long the machine has been up, in one phrase.
  *
- * Coarse on purpose: "22 jours" is the whole of what an uptime says. Minutes
+ * Coarse on purpose: "22 days" is the whole of what an uptime says. Minutes
  * only matter in the first hour — which is exactly when it says "the Pi
  * rebooted", the one thing worth noticing.
  */
 export function humanizeUptime(seconds: number | undefined | null): string {
 	if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0) return '—';
 	const s = Math.floor(seconds);
-	if (s < 60) return "moins d'une minute";
+	if (s < 60) return "under a minute";
 	const minutes = Math.floor(s / 60);
 	if (minutes < 60) return `${minutes} min`;
 	const hours = Math.floor(s / 3600);
 	if (hours < 24) {
 		const rest = minutes - hours * 60;
-		return rest > 0 ? `${hours} h ${String(rest).padStart(2, '0')}` : `${hours} h`;
+		return rest > 0 ? `${hours}h ${String(rest).padStart(2, '0')}m` : `${hours}h`;
 	}
 	const days = Math.floor(s / 86400);
-	return days === 1 ? '1 jour' : `${days} jours`;
+	return days === 1 ? '1 day' : `${days} days`;
 }
 
 const level = (value: number, warn: number, ko: number): SystemLevel =>
@@ -81,9 +81,9 @@ export function systemRows(stats: SystemStats | null | undefined): SystemRow[] {
 	if (typeof stats.cpu_percent === 'number' && Number.isFinite(stats.cpu_percent)) {
 		rows.push({
 			key: 'cpu',
-			label: 'Processeur',
-			value: `${Math.round(stats.cpu_percent)} %`,
-			detail: cores ? `${cores} cœurs` : '',
+			label: 'CPU',
+			value: `${Math.round(stats.cpu_percent)}%`,
+			detail: cores ? `${cores} cores` : '',
 			level: level(stats.cpu_percent, 70, 90)
 		});
 	}
@@ -95,9 +95,9 @@ export function systemRows(stats: SystemStats | null | undefined): SystemRow[] {
 		const perCore = cores ? load[0] / cores : load[0];
 		rows.push({
 			key: 'load',
-			label: 'Charge',
+			label: 'Load',
 			value: load.slice(0, 3).map((n) => formatNumber(n)).join(' · '),
-			detail: cores ? `${Math.round(perCore * 100)} % de ${cores} cœurs` : '',
+			detail: cores ? `${Math.round(perCore * 100)}% of ${cores} cores` : '',
 			level: level(perCore, 0.7, 1.2)
 		});
 	}
@@ -109,9 +109,9 @@ export function systemRows(stats: SystemStats | null | undefined): SystemRow[] {
 			typeof mem.percent === 'number' ? mem.percent : used !== undefined ? (used / mem.total) * 100 : 0;
 		rows.push({
 			key: 'memory',
-			label: 'Mémoire',
+			label: 'Memory',
 			value: `${formatBytes(used)} / ${formatBytes(mem.total)}`,
-			detail: `${Math.round(percent)} % utilisée`,
+			detail: `${Math.round(percent)}% used`,
 			level: level(percent, 80, 92)
 		});
 	}
@@ -119,7 +119,7 @@ export function systemRows(stats: SystemStats | null | undefined): SystemRow[] {
 	if (typeof stats.uptime_seconds === 'number') {
 		rows.push({
 			key: 'uptime',
-			label: 'Allumé depuis',
+			label: 'Up for',
 			value: humanizeUptime(stats.uptime_seconds),
 			detail: '',
 			// An uptime is never a problem in itself.
@@ -136,7 +136,7 @@ export function machineLine(stats: SystemStats | null | undefined): string {
 	const parts = [
 		stats.hostname,
 		stats.arch,
-		typeof stats.cpu_count === 'number' && stats.cpu_count > 0 ? `${stats.cpu_count} cœurs` : null,
+		typeof stats.cpu_count === 'number' && stats.cpu_count > 0 ? `${stats.cpu_count} cores` : null,
 		stats.python_version ? `Python ${stats.python_version}` : null
 	].filter((p): p is string => typeof p === 'string' && p.length > 0);
 	return parts.join(' · ');

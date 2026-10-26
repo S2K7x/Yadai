@@ -64,7 +64,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			available: false,
 			reason: 'disabled',
 			message:
-				"Le dashboard de Yadai n'est pas configuré (HERMES_DASHBOARD_TOKEN absent) : la consommation de l'agent n'est pas lisible.",
+				"The Hermes dashboard is not configured (HERMES_DASHBOARD_TOKEN missing): the agent's usage cannot be read.",
 			report: emptyReport(days)
 		});
 	}
@@ -80,7 +80,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		const message =
 			err instanceof DashboardError
 				? err.message
-				: "La consommation de l'agent n'a pas pu être lue.";
+				: "The agent's usage could not be read.";
 		return json({ available: false, reason: 'failed', message, report: emptyReport(days) });
 	}
 };

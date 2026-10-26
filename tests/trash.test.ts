@@ -34,10 +34,10 @@ test('a corrupt timestamp expires rather than living forever', () => {
 });
 
 test('the label says what is left, in words a person reads', () => {
-	assert.equal(trashLabel(NOW, NOW), `il reste ${TRASH_DAYS} jours`);
-	assert.equal(trashLabel(daysAgo(29), NOW), 'il reste 1 jour');
-	assert.equal(trashLabel(daysAgo(29.5), NOW), 'dernier jour');
-	assert.equal(trashLabel(daysAgo(31), NOW), 'suppression imminente');
+	assert.equal(trashLabel(NOW, NOW), `${TRASH_DAYS} days left`);
+	assert.equal(trashLabel(daysAgo(29), NOW), '1 day left');
+	assert.equal(trashLabel(daysAgo(29.5), NOW), 'last day');
+	assert.equal(trashLabel(daysAgo(31), NOW), 'deleting soon');
 });
 
 // --- what the sweep is allowed to destroy ---------------------------------

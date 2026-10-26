@@ -18,19 +18,19 @@
 
 		// Last-resort net for bugs that escape the stores. Without this a
 		// thrown error in an effect leaves the UI silently frozen.
-		const onError = (event: ErrorEvent) => toasts.push('error', `Erreur : ${event.message}`);
+		const onError = (event: ErrorEvent) => toasts.push('error', `Error: ${event.message}`);
 		const onRejection = (event: PromiseRejectionEvent) => {
 			const reason = event.reason;
 			if (reason?.name === 'AbortError') return; // deliberate cancellation
-			toasts.push('error', `Erreur : ${reason?.message ?? String(reason)}`);
+			toasts.push('error', `Error: ${reason?.message ?? String(reason)}`);
 		};
 		window.addEventListener('error', onError);
 		window.addEventListener('unhandledrejection', onRejection);
 
 		// The browser going offline is worth saying out loud — otherwise it
 		// looks like Hermes died.
-		const onOffline = () => toasts.push('error', 'Appareil hors ligne.');
-		const onOnline = () => toasts.success('Connexion réseau rétablie.');
+		const onOffline = () => toasts.push('error', 'Device offline.');
+		const onOnline = () => toasts.success('Network connection restored.');
 		window.addEventListener('offline', onOffline);
 		window.addEventListener('online', onOnline);
 
@@ -45,7 +45,7 @@
 
 <svelte:head>
 	<title>Yadai</title>
-	<meta name="description" content="Interface web privée pour Hermes Agent, sous le nom Yadai" />
+	<meta name="description" content="Yadai — a private web interface for Hermes Agent" />
 </svelte:head>
 
 {@render children()}

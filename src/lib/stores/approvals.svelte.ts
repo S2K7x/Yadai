@@ -44,7 +44,7 @@ class ApprovalsStore {
 		} catch (err) {
 			this.available = false;
 			this.loaded = false;
-			toasts.error(err, { label: 'Réessayer', run: () => void this.load() });
+			toasts.error(err, { label: 'Retry', run: () => void this.load() });
 		} finally {
 			this.loading = false;
 		}
@@ -59,7 +59,7 @@ class ApprovalsStore {
 		await this.ensureLoaded();
 		const plan = planPolicyUpdate(this.baseline, patch);
 		if (!plan.ok) {
-			toasts.info("La politique n'a pas pu être lue : rien n'a été écrit.");
+			toasts.info('The policy could not be read: nothing was written.');
 			return;
 		}
 		const previous = this.policy;
@@ -71,7 +71,7 @@ class ApprovalsStore {
 				body: JSON.stringify({ policy: plan.policy })
 			});
 			this.policy = { mode: res.mode, deny: res.deny, allowlist: res.allowlist };
-			toasts.success('Politique enregistrée.');
+			toasts.success('Policy saved.');
 		} catch (err) {
 			this.policy = previous;
 			toasts.error(err);

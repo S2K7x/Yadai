@@ -86,7 +86,7 @@ export async function hermesFetch(path: string, opts: CallOptions = {}): Promise
 		// SSE relay can stay quiet about a user closing a tab.
 		if (opts.signal?.aborted) throw err;
 		if (timedOut()) {
-			throw new HermesError(504, `Hermes n'a pas répondu en ${timeoutMs} ms`, AppErrorCode.Timeout);
+			throw new HermesError(504, `Hermes did not respond within ${timeoutMs} ms`, AppErrorCode.Timeout);
 		}
 		const message = err instanceof Error ? err.message : String(err);
 		throw new HermesError(502, message, AppErrorCode.Unreachable);
@@ -113,7 +113,7 @@ async function hermesOnce<T>(path: string, opts: CallOptions): Promise<T> {
 			// OpenAI-shaped {"error": {"message": ...}}.
 			(typeof err === 'string' ? err : err?.message) ||
 				text ||
-				`Hermes a renvoyé HTTP ${res.status}`,
+				`Hermes returned HTTP ${res.status}`,
 			typeof err === 'object' ? err?.code : undefined,
 			retryAfter
 		);
