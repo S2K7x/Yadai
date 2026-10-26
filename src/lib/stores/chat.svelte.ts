@@ -963,7 +963,10 @@ class ChatStore {
 
 			case 'tool.started':
 				assistant.steps.push({
-					key: `${data.tool_name}:${data.seq}`,
+					// `seq` is on every upstream frame; the index is only a fallback
+					// so a frame without one cannot mint a duplicate key, which
+					// Svelte treats as a fatal error for the whole thread.
+					key: `${data.tool_name}:${data.seq ?? `i${assistant.steps.length}`}`,
 					tool_name: data.tool_name || 'tool',
 					status: 'running',
 					preview: data.preview,
@@ -986,7 +989,7 @@ class ChatStore {
 					step.ended_at = data.ts ?? Date.now() / 1000;
 				} else {
 					assistant.steps.push({
-						key: `${data.tool_name}:${data.seq}`,
+						key: `${data.tool_name}:${data.seq ?? `i${assistant.steps.length}`}`,
 						tool_name: data.tool_name || 'tool',
 						status,
 						result: data.preview,
