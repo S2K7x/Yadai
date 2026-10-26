@@ -55,7 +55,7 @@ export interface ProviderKeyGroup {
 }
 
 /** Fallback bucket for a credential the catalog does not attach to a provider. */
-export const UNGROUPED_PROVIDER_LABEL = 'Autres';
+export const UNGROUPED_PROVIDER_LABEL = 'Other';
 
 /**
  * Environment variable names this app is willing to write.
@@ -169,10 +169,10 @@ export function validationBlocks(result: ValidationResult | null): boolean {
 /** One sentence about what the probe found, or '' when there is nothing to say. */
 export function validationMessage(result: ValidationResult | null): string {
 	if (!result) return '';
-	if (result.ok && result.reachable) return 'Clé acceptée par le fournisseur.';
-	if (result.ok) return "Ce fournisseur n'est pas vérifiable : la clé sera enregistrée telle quelle.";
-	if (!result.reachable) return "Impossible de joindre le fournisseur pour vérifier la clé.";
-	return result.message || 'Le fournisseur a refusé cette clé.';
+	if (result.ok && result.reachable) return 'Key accepted by the provider.';
+	if (result.ok) return 'This provider cannot be checked: the key will be saved as is.';
+	if (!result.reachable) return 'Could not reach the provider to check the key.';
+	return result.message || 'The provider rejected this key.';
 }
 
 // ---------------------------------------------------------------------------
@@ -245,15 +245,15 @@ export function parseExpiry(value: number | string | null | undefined): number |
 export function accountSummary(provider: OauthProvider): string {
 	if (isConnected(provider)) {
 		const source = provider.status?.source_label?.trim();
-		return source ? `Identifiants : ${source}` : 'Identifiants gérés par Yadai';
+		return source ? `Credentials: ${source}` : 'Credentials managed by Yadai';
 	}
 	switch (flowKind(provider)) {
 		case 'device_code':
-			return "Connexion par code d'appairage";
+			return 'Sign in with a pairing code';
 		case 'pkce':
-			return 'Connexion par autorisation web';
+			return 'Sign in through the web';
 		default:
-			return 'Géré par sa propre CLI';
+			return 'Managed by its own CLI';
 	}
 }
 
@@ -354,22 +354,22 @@ export function advanceOauthFlow(
 
 	switch (poll.status) {
 		case 'approved':
-			return { ...state, phase: 'approved', expiresAt, message: 'Compte connecté.' };
+			return { ...state, phase: 'approved', expiresAt, message: 'Account connected.' };
 		case 'denied':
 			return {
 				...state,
 				phase: 'denied',
 				expiresAt,
-				message: detail || 'Autorisation refusée côté fournisseur.'
+				message: detail || 'Authorisation refused by the provider.'
 			};
 		case 'expired':
-			return { ...state, phase: 'expired', expiresAt, message: detail || 'Le code a expiré.' };
+			return { ...state, phase: 'expired', expiresAt, message: detail || 'The code has expired.' };
 		case 'error':
-			return { ...state, phase: 'error', expiresAt, message: detail || 'La connexion a échoué.' };
+			return { ...state, phase: 'error', expiresAt, message: detail || 'Sign-in failed.' };
 	}
 
 	if (now >= expiresAt) {
-		return { ...state, phase: 'expired', expiresAt, message: 'Le code a expiré.' };
+		return { ...state, phase: 'expired', expiresAt, message: 'The code has expired.' };
 	}
 	return expiresAt === state.expiresAt ? state : { ...state, expiresAt };
 }

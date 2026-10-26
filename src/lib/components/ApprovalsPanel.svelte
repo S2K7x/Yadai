@@ -22,16 +22,16 @@
 
 	const MODES: Record<ApprovalMode, { label: string; hint: string }> = {
 		smart: {
-			label: 'Intelligent',
-			hint: "Un modèle auxiliaire juge chaque commande dangereuse et approuve la plupart. C'est le défaut."
+			label: 'Smart',
+			hint: 'An auxiliary model judges each dangerous command and approves most of them. This is the default.'
 		},
 		manual: {
-			label: 'Manuel',
-			hint: 'Chaque commande dangereuse demande une approbation humaine.'
+			label: 'Manual',
+			hint: 'Every dangerous command asks for human approval.'
 		},
 		off: {
-			label: 'Désactivé',
-			hint: 'Plus aucune approbation demandée, sur aucune surface.'
+			label: 'Off',
+			hint: 'No approval is asked any more, anywhere.'
 		}
 	};
 
@@ -39,7 +39,7 @@
 		if (mode === approvals.policy.mode) return;
 		if (mode === 'off') {
 			const ok = confirm(
-				"Désactiver les approbations ?\n\nPlus aucune commande dangereuse ne sera soumise à approbation — ni ici, ni depuis le CLI, ni depuis Telegram, ni pour les tâches planifiées. Le plancher de sécurité de Hermes (rm -rf /, mkfs, écriture disque brute…) reste en place, mais tout le reste passe sans question."
+				"Turn approvals off?\n\nNo dangerous command will need approval any more — not here, not from the CLI, not from Telegram, not for scheduled tasks. Hermes' safety floor (rm -rf /, mkfs, raw disk writes…) stays in place, but everything else goes through without a question."
 			);
 			if (!ok) return;
 		}
@@ -68,15 +68,15 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<Modal {open} title="Approbations" width={560} {onclose}>
-	{#snippet subtitle()}Ce que Yadai peut lancer sans demander{/snippet}
+<Modal {open} title="Approvals" width={560} {onclose}>
+	{#snippet subtitle()}What Yadai may run without asking{/snippet}
 	<div class="body">
 		{#if !approvals.available}
 			<p class="fail">
-				{approvals.message || (approvals.loading ? 'Lecture…' : "La politique n'a pas pu être lue.")}
+				{approvals.message || (approvals.loading ? 'Reading…' : 'The policy could not be read.')}
 			</p>
 			{#if !approvals.loading}
-				<button class="retry" onclick={() => approvals.load()}>Réessayer</button>
+				<button class="retry" onclick={() => approvals.load()}>Retry</button>
 			{/if}
 		{/if}
 
@@ -101,17 +101,17 @@
 			     web UI cannot answer its own prompts, so every dangerous command
 			     becomes a dead end here. See $lib/approvals for the measurement. -->
 			<p class="warn">
-				<Icon name="warning" size={15} /> En mode manuel, cette interface ne peut accorder
-				aucune approbation : Hermes n'expose de bouton que sur le CLI et les messageries. Une
-				commande dangereuse s'arrêtera donc ici sans recours. Le mode intelligent, lui, tranche
-				tout seul.
+				<Icon name="warning" size={15} /> In manual mode, this interface cannot grant
+				any approval: Hermes only offers a button on the CLI and in messaging apps. A
+				dangerous command will therefore stop here with no way forward. Smart mode decides
+				on its own.
 			</p>
 		{/if}
 
-		<h3>Toujours refuser</h3>
+		<h3>Always deny</h3>
 		<p class="lead">
-			Motifs <code>fnmatch</code> bloqués <strong>sans condition</strong>, avant même le mode
-			ci-dessus. Un refus ici gagne contre tout le reste. Prise en compte immédiate.
+			<code>fnmatch</code> patterns blocked <strong>unconditionally</strong>, even before the mode
+			above. A deny here beats everything else. Takes effect immediately.
 		</p>
 		<div class="add">
 			<input
@@ -119,9 +119,9 @@
 				placeholder="git push --force*"
 				disabled={blocked}
 				onkeydown={(e) => e.key === 'Enter' && addDeny()}
-				aria-label="Nouveau motif à refuser"
+				aria-label="New pattern to deny"
 			/>
-			<button disabled={blocked || !denyDraft.trim()} onclick={addDeny}>Ajouter</button>
+			<button disabled={blocked || !denyDraft.trim()} onclick={addDeny}>Add</button>
 		</div>
 		<ul class="rules">
 			{#each approvals.policy.deny as rule (rule)}
@@ -130,20 +130,20 @@
 					<button
 						disabled={blocked}
 						onclick={() => approvals.removeRule('deny', rule)}
-						aria-label="Retirer {rule}"><Icon name="close" size={13} /></button
+						aria-label="Remove {rule}"><Icon name="close" size={13} /></button
 					>
 				</li>
 			{:else}
-				<li class="none">Aucun motif refusé.</li>
+				<li class="none">No denied patterns.</li>
 			{/each}
 		</ul>
 
-		<h3>Toujours autoriser</h3>
+		<h3>Always allow</h3>
 		<p class="lead">
-			Commandes approuvées une fois pour toutes — texte exact ou joker
-			(<code>podman *</code>). <strong>Nécessite un redémarrage du gateway</strong> :
-			cette liste n'est lue qu'au démarrage de Hermes, contrairement aux deux réglages
-			ci-dessus.
+			Commands approved once and for all — exact text or wildcard
+			(<code>podman *</code>). <strong>Requires a gateway restart</strong>:
+			this list is only read when Hermes starts, unlike the two settings
+			above.
 		</p>
 		<div class="add">
 			<input
@@ -151,9 +151,9 @@
 				placeholder="docker compose ps"
 				disabled={blocked}
 				onkeydown={(e) => e.key === 'Enter' && addAllow()}
-				aria-label="Nouvelle commande à autoriser"
+				aria-label="New command to allow"
 			/>
-			<button disabled={blocked || !allowDraft.trim()} onclick={addAllow}>Ajouter</button>
+			<button disabled={blocked || !allowDraft.trim()} onclick={addAllow}>Add</button>
 		</div>
 		<ul class="rules">
 			{#each approvals.policy.allowlist as rule (rule)}
@@ -162,26 +162,25 @@
 					<button
 						disabled={blocked}
 						onclick={() => approvals.removeRule('allowlist', rule)}
-						aria-label="Retirer {rule}"><Icon name="close" size={13} /></button
+						aria-label="Remove {rule}"><Icon name="close" size={13} /></button
 					>
 				</li>
 			{:else}
-				<li class="none">Aucune commande pré-autorisée.</li>
+				<li class="none">No pre-approved commands.</li>
 			{/each}
 		</ul>
 
 		<p class="lead foot">
-			Ces réglages sont ceux de Hermes, pas de cette interface : ils valent aussi pour le CLI,
-			les messageries et les tâches planifiées. Après un ajout à « toujours autoriser » :
+			These are Hermes' settings, not this interface's: they also apply to the CLI,
+			messaging apps and scheduled tasks. After adding to "always allow":
 			<code>systemctl --user restart hermes-gateway</code>.
 		</p>
-		<!-- Constaté en écrivant ce panneau, pas déduit : la sauvegarde passe par
-		     le dashboard, qui ré-sérialise config.yaml et ne conserve pas les
-		     commentaires écrits à la main. Mieux vaut le dire ici que le
-		     découvrir. -->
+		<!-- Observed while writing this panel, not inferred: saving goes through
+		     the dashboard, which re-serialises config.yaml and drops comments
+		     written by hand. Better to say so here than to find out. -->
 		<p class="lead">
-			<Icon name="warning" size={13} /> Enregistrer réécrit <code>~/.hermes/config.yaml</code> via
-			le dashboard de Hermes, qui ne conserve pas les commentaires que vous y auriez écrits.
+			<Icon name="warning" size={13} /> Saving rewrites <code>~/.hermes/config.yaml</code> through
+			the Hermes dashboard, which does not keep any comments you may have written there.
 		</p>
 	</div>
 </Modal>

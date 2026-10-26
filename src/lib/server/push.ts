@@ -31,7 +31,7 @@ export const deviceId = (endpoint: string): string =>
 export function listDevices(): PushDevice[] {
 	return listPushSubscriptions().map((row) => ({
 		id: deviceId(row.endpoint),
-		label: row.label || 'Appareil',
+		label: row.label || 'Device',
 		host: endpointHost(row.endpoint),
 		created_at: row.created_at,
 		last_ok_at: row.last_ok_at,

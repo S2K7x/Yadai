@@ -52,7 +52,7 @@ test('turnNotification carries the deep link and a per-session tag', () => {
 test('turnNotification falls back when the turn has no text or title', () => {
 	assert.deepEqual(turnNotification({ sessionId: 's1', text: '   ' }), {
 		title: 'Yadai',
-		body: 'Réponse terminée.',
+		body: 'Answer ready.',
 		url: '/?s=s1',
 		tag: 'session:s1'
 	});
@@ -60,7 +60,7 @@ test('turnNotification falls back when the turn has no text or title', () => {
 
 test('turnNotification reports a failed turn', () => {
 	const message = turnNotification({ sessionId: 's1', error: 'Modèle indisponible', text: 'x' });
-	assert.equal(message.body, 'Le tour a échoué : Modèle indisponible');
+	assert.equal(message.body, 'The turn failed: Modèle indisponible');
 });
 
 test('encodePushMessage stays inside the payload budget', () => {
@@ -107,7 +107,7 @@ test('deviceLabel names the platform and the browser', () => {
 		),
 		'Linux · Chrome'
 	);
-	assert.equal(deviceLabel(''), 'Appareil');
+	assert.equal(deviceLabel(''), 'Device');
 });
 
 test('needsHomeScreenInstall only fires for an iOS tab', () => {

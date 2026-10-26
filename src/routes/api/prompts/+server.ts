@@ -29,7 +29,7 @@ export const PUT: RequestHandler = async ({ request }) => {
 	// A body without a list would normalise to [] — that is, it would erase the
 	// library. Refuse it instead: only a real list may replace one.
 	if (!Array.isArray(parsed.body.prompts)) {
-		return errorResponse(400, '`prompts` doit être une liste.', 'invalid_body');
+		return errorResponse(400, '`prompts` must be a list.', 'invalid_body');
 	}
 
 	// Normalising server-side is what bounds the row. The browser is trusted

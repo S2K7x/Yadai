@@ -12,7 +12,7 @@ import { proxy } from '$lib/server/respond';
  */
 function systemMessage(reason: unknown): string {
 	if (reason instanceof DashboardError && reason.code === DashboardErrorCode.Disabled) {
-		return "HERMES_DASHBOARD_TOKEN n'est pas configuré : les compteurs de la machine ne sont pas lisibles.";
+		return "HERMES_DASHBOARD_TOKEN is not configured: the machine's counters cannot be read.";
 	}
 	return String((reason as { message?: string })?.message ?? reason);
 }

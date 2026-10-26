@@ -73,7 +73,8 @@ test('search falls back to the preview text', () => {
 test('label falls back through title, preview, then a placeholder', () => {
 	assert.equal(sessionLabel(session({ title: 'Titre' })), 'Titre');
 	assert.equal(sessionLabel(session({ title: '  ', preview: 'aperçu' })), 'aperçu');
-	assert.equal(sessionLabel(session({})), 'Sans titre');
+	assert.equal(sessionLabel(session({})), 'New chat');
+	assert.equal(sessionLabel(session({ message_count: 4 })), 'Untitled');
 });
 
 test('usage summary appears only once tokens exist', () => {
@@ -82,16 +83,16 @@ test('usage summary appears only once tokens exist', () => {
 		usageSummary(session({ input_tokens: 21_473, output_tokens: 412, estimated_cost_usd: 0.0123 })),
 		// Written by `$lib/format`, like the consumption panel — this line used to
 		// have its own renderer and its own decimal separator.
-		'21,5 k ↓ / 412 ↑ · 0,0123 $'
+		'21.5k ↓ / 412 ↑ · $0.0123'
 	);
 });
 
-test('known error codes get an actionable French message', () => {
+test('known error codes get an actionable message', () => {
 	const rateLimited = new ApiError(429, 'Too many concurrent runs (max 10)', AppErrorCode.RateLimited);
-	assert.match(humanizeError(rateLimited), /tours simultanés/);
+	assert.match(humanizeError(rateLimited), /simultaneous turns/);
 
 	const gone = new ApiError(404, 'Session not found: x', AppErrorCode.SessionGone);
-	assert.match(humanizeError(gone), /n'existe plus/);
+	assert.match(humanizeError(gone), /no longer exists/);
 
 	// 401 has no dedicated code but must still point at the real cause.
 	assert.match(humanizeError(new ApiError(401, 'Unauthorized')), /HERMES_API_KEY/);
@@ -188,7 +189,7 @@ const ZONES = [
 ];
 
 for (const { zone, springForward, fallBack } of ZONES) {
-	test(`${zone}: a 25-hour day does not push yesterday into "2 j"`, () => {
+	test(`${zone}: a 25-hour day does not push yesterday into "2d"`, () => {
 		withTz(zone, () => {
 			// Clocks went back during `fallBack`, so that local day lasted 25h.
 			// Elapsed-time arithmetic reads 24.5h here and rounds up to two days.
@@ -196,12 +197,12 @@ for (const { zone, springForward, fallBack } of ZONES) {
 			const now = new Date(`${fallBack}T10:00:00`);
 			now.setDate(now.getDate() + 1);
 
-			assert.equal(relativeTime(ts, now), 'hier');
+			assert.equal(relativeTime(ts, now), 'yesterday');
 			assert.equal(bandOf(ts, now), 'yesterday');
 		});
 	});
 
-	test(`${zone}: a 23-hour day does not pull two days ago into "hier"`, () => {
+	test(`${zone}: a 23-hour day does not pull two days ago into "yesterday"`, () => {
 		withTz(zone, () => {
 			// Clocks went forward during `springForward`: the day before it is two
 			// calendar days back, but only 23.5h of elapsed time away.
@@ -211,7 +212,7 @@ for (const { zone, springForward, fallBack } of ZONES) {
 			const now = new Date(`${springForward}T10:00:00`);
 			now.setDate(now.getDate() + 1);
 
-			assert.equal(relativeTime(ts, now), '2 j');
+			assert.equal(relativeTime(ts, now), '2d');
 			assert.equal(bandOf(ts, now), 'week');
 		});
 	});
@@ -225,14 +226,14 @@ test('a session stamped at exactly local midnight belongs to that day', () => {
 		assert.equal(bandOf(at('2026-08-22T00:00:00'), now), 'today');
 		assert.equal(relativeTime(at('2026-08-22T00:00:00'), now), '00:00');
 		assert.equal(bandOf(at('2026-08-21T00:00:00'), now), 'yesterday');
-		assert.equal(relativeTime(at('2026-08-21T00:00:00'), now), 'hier');
+		assert.equal(relativeTime(at('2026-08-21T00:00:00'), now), 'yesterday');
 	});
 });
 
-test('ten minutes across midnight is already "hier", not a few hours', () => {
+test('ten minutes across midnight is already "yesterday", not a few hours', () => {
 	withTz('Asia/Jerusalem', () => {
 		const now = new Date('2026-08-22T00:10:00');
-		assert.equal(relativeTime(at('2026-08-21T23:50:00'), now), 'hier');
+		assert.equal(relativeTime(at('2026-08-21T23:50:00'), now), 'yesterday');
 		// …and this morning stays today all evening.
 		assert.equal(
 			bandOf(at('2026-08-22T00:05:00'), new Date('2026-08-22T23:50:00')),
@@ -244,7 +245,7 @@ test('ten minutes across midnight is already "hier", not a few hours', () => {
 test('the day count rolls over the end of a year', () => {
 	withTz('Europe/Paris', () => {
 		const now = new Date('2027-01-01T09:00:00');
-		assert.equal(relativeTime(at('2026-12-31T23:30:00'), now), 'hier');
+		assert.equal(relativeTime(at('2026-12-31T23:30:00'), now), 'yesterday');
 		assert.equal(bandOf(at('2026-12-30T12:00:00'), now), 'week');
 	});
 });
@@ -253,10 +254,10 @@ test('band edges: 6 days is still the week, 7 is not', () => {
 	withTz('Europe/Paris', () => {
 		const now = new Date('2026-08-22T10:00:00');
 		assert.equal(bandOf(at('2026-08-16T10:00:00'), now), 'week'); // 6 days
-		assert.equal(relativeTime(at('2026-08-16T10:00:00'), now), '6 j');
+		assert.equal(relativeTime(at('2026-08-16T10:00:00'), now), '6d');
 		assert.equal(bandOf(at('2026-08-15T10:00:00'), now), 'month'); // 7 days
-		// Past a week the label becomes a date, never "7 j".
-		assert.doesNotMatch(relativeTime(at('2026-08-15T10:00:00'), now), /\bj$/);
+		// Past a week the label becomes a date, never "7d".
+		assert.doesNotMatch(relativeTime(at('2026-08-15T10:00:00'), now), /\dd$/);
 		assert.equal(bandOf(at('2026-07-24T10:00:00'), now), 'month'); // 29 days
 		assert.equal(bandOf(at('2026-07-23T10:00:00'), now), 'older'); // 30 days
 	});

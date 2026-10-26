@@ -52,18 +52,18 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<Modal {open} title="Apparence" width={520} {onclose}>
+<Modal {open} title="Appearance" width={520} {onclose}>
 	<div class="body">
 		{#if theme.loadError}
 			<!-- Not "Chargement…": a failed load is not a slow one, and PUT
 			     /api/theme replaces the row, so a change composed now would write
 			     the default palette over the saved one. -->
 			<p class="fail">
-				Votre thème n'a pas pu être chargé — les réglages sont bloqués pour ne pas écraser
-				la palette enregistrée. L'écran affiche la dernière palette connue de cet appareil.<br
+				Your theme could not be loaded — the settings are locked so the saved palette is not
+				overwritten. The screen shows the last palette this device knew.<br
 				/>{theme.loadError}
 			</p>
-			<button class="retry" onclick={() => theme.reload()}>Réessayer</button>
+			<button class="retry" onclick={() => theme.reload()}>Retry</button>
 		{/if}
 
 		<h3>Mode</h3>
@@ -72,13 +72,13 @@
 				class="mode"
 				class:sel={settings.mode === 'dark'}
 				disabled={blocked}
-				onclick={() => theme.update({ mode: 'dark' })}><Icon name="moon" /> Sombre</button
+				onclick={() => theme.update({ mode: 'dark' })}><Icon name="moon" /> Dark</button
 			>
 			<button
 				class="mode"
 				class:sel={settings.mode === 'light'}
 				disabled={blocked}
-				onclick={() => theme.update({ mode: 'light' })}><Icon name="sun" /> Clair</button
+				onclick={() => theme.update({ mode: 'light' })}><Icon name="sun" /> Light</button
 			>
 		</div>
 
@@ -105,8 +105,8 @@
 
 		<h3>Accents</h3>
 		<p class="lead">
-			Le reste — survols, bordures, fonds doux — est dérivé de ces deux couleurs, pas demandé une
-			par une.
+			Everything else — hovers, borders, soft fills — is derived from these two colours, not asked for
+			one by one.
 		</p>
 
 		<div class="colors">
@@ -116,7 +116,7 @@
 					value={palette.accent}
 					disabled={blocked}
 					oninput={(e) => theme.update({ accent: e.currentTarget.value })}
-					aria-label="Couleur d'accent"
+					aria-label="Accent colour"
 				/>
 				<span class="cname">Accent</span>
 				<span class="cval">{palette.accent}</span>
@@ -131,9 +131,9 @@
 					value={palette.accent2}
 					disabled={blocked}
 					oninput={(e) => theme.update({ accent2: e.currentTarget.value })}
-					aria-label="Couleur d'accent secondaire"
+					aria-label="Secondary accent colour"
 				/>
-				<span class="cname">Actions positives</span>
+				<span class="cname">Positive actions</span>
 				<span class="cval">{palette.accent2}</span>
 				<span class="ratio" class:warn={!accent2Check.ok}>
 					{formatNumber(accent2Check.ratio, 1)}:1
@@ -143,8 +143,8 @@
 
 		{#if !accentCheck.ok || !accent2Check.ok}
 			<p class="warning">
-				Contraste sous 4,5:1 : le texte posé sur cette couleur sera difficile à lire. La bulle
-				utilisateur, elle, est assombrie automatiquement jusqu'à ce que le blanc passe.
+				Contrast below 4.5:1: text on this colour will be hard to read. The user bubble,
+				though, is darkened automatically until white passes.
 			</p>
 		{/if}
 
@@ -154,35 +154,35 @@
 				disabled={blocked}
 				onclick={() => theme.update({ accent: null, accent2: null })}
 			>
-				Revenir aux accents de « {PRESETS.find((p) => p.id === settings.preset)?.name} »
+				Back to the “{PRESETS.find((p) => p.id === settings.preset)?.name}” accents
 			</button>
 		{/if}
 
-		<h3>Aperçu</h3>
+		<h3>Preview</h3>
 		<div class="preview">
-			<div class="pv-user">Trouve les trains pour Tel Aviv.</div>
+			<div class="pv-user">Find trains to Tel Aviv.</div>
 			<div class="pv-bot">
-				Voici les prochains départs. <code>terminal</code> a été utilisé.
-				<span class="pv-badge">3 outils</span>
+				Here are the next departures. <code>terminal</code> was used.
+				<span class="pv-badge">3 tools</span>
 			</div>
 			<div class="pv-row">
 				<span class="pv-send">↑</span>
-				<span class="pv-pill">Envoyer</span>
+				<span class="pv-pill">Send</span>
 				<span class="pv-dot"></span>
 			</div>
 		</div>
 
 		<p class="lead">
-			Le choix est enregistré sur le serveur : le téléphone et le bureau affichent la même
+			The choice is saved on the server: your phone and your desktop show the same
 			palette.
 		</p>
 	</div>
 
 	{#snippet footer()}
 		<button class="reset" onclick={() => theme.reset()} disabled={pristine || blocked}>
-			Réglages par défaut
+			Reset to defaults
 		</button>
-		<button class="done" onclick={onclose}>Terminé</button>
+		<button class="done" onclick={onclose}>Done</button>
 	{/snippet}
 </Modal>
 

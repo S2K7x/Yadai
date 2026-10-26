@@ -192,8 +192,8 @@ test('only the three offered windows reach upstream', () => {
 });
 
 test('a window is named in words', () => {
-	assert.equal(periodLabel(7), '7 jours');
-	assert.equal(periodLabel(90), '90 jours');
+	assert.equal(periodLabel(7), '7 days');
+	assert.equal(periodLabel(90), '90 days');
 });
 
 // ---------------------------------------------------------------------------
@@ -287,9 +287,9 @@ test('bar heights are relative to the tallest day of the period', () => {
  * reader east of Greenwich.
  */
 test('a bucket is labelled from its own fields, not re-timezoned', () => {
-	assert.equal(dayLabel('2026-10-06'), '6 oct.');
-	assert.equal(dayLabel('2026-01-01'), '1 janv.');
-	assert.equal(dayLabel('2026-08-31'), '31 août');
+	assert.equal(dayLabel('2026-10-06'), 'Oct 6');
+	assert.equal(dayLabel('2026-01-01'), 'Jan 1');
+	assert.equal(dayLabel('2026-08-31'), 'Aug 31');
 	assert.equal(dayLabel('pas-une-date'), 'pas-une-date');
 
 	const report = normalizeUsage({ period_days: 7, daily: [{ day: '2026-03-12', input_tokens: 1 }] });
@@ -298,7 +298,7 @@ test('a bucket is labelled from its own fields, not re-timezoned', () => {
 		const bars = dailyBars(report, AT('2026-03-12'));
 		const hit = bars.find((b) => b.tokens > 0);
 		assert.equal(hit?.day, '2026-03-12', `shifted in ${tz}`);
-		assert.equal(hit?.label, '12 mars', `relabelled in ${tz}`);
+		assert.equal(hit?.label, 'Mar 12', `relabelled in ${tz}`);
 	}
 	delete process.env.TZ;
 });
@@ -346,12 +346,12 @@ test('the tool list is capped so a long tail cannot fill the panel', () => {
 test("a model's detail line drops zeroes and spells its singulars", () => {
 	const base = { model: 'm', inputTokens: 0, outputTokens: 0, cost: 0, sessions: 0, apiCalls: 0 };
 	assert.equal(modelDetail(base), '');
-	assert.equal(modelDetail({ ...base, apiCalls: 1 }), '1 appel');
+	assert.equal(modelDetail({ ...base, apiCalls: 1 }), '1 call');
 	assert.equal(modelDetail({ ...base, sessions: 1 }), '1 session');
-	assert.equal(modelDetail({ ...base, apiCalls: 11, sessions: 3 }), '11 appels · 3 sessions');
-	assert.equal(modelDetail({ ...base, apiCalls: 2, cost: 0.5 }), '2 appels · 0,5 $');
+	assert.equal(modelDetail({ ...base, apiCalls: 11, sessions: 3 }), '11 calls · 3 sessions');
+	assert.equal(modelDetail({ ...base, apiCalls: 2, cost: 0.5 }), '2 calls · $0.5');
 	// A free model says nothing about cost rather than claiming zero.
-	assert.equal(modelDetail({ ...base, apiCalls: 2, cost: 0 }), '2 appels');
+	assert.equal(modelDetail({ ...base, apiCalls: 2, cost: 0 }), '2 calls');
 });
 
 // ---------------------------------------------------------------------------
@@ -370,7 +370,7 @@ test("a model's detail line drops zeroes and spells its singulars", () => {
 test('a zero cost is explained rather than claimed as free', () => {
 	const free = normalizeUsage(PAYLOAD);
 	const note = costNote(free);
-	assert.ok(note && /gratuits|inconnu/.test(note), note ?? 'no note');
+	assert.ok(note && /free|does not know/.test(note), note ?? 'no note');
 
 	const paid = normalizeUsage({
 		totals: { total_input: 10, total_estimated_cost: 3, total_actual_cost: 0 }
@@ -380,7 +380,7 @@ test('a zero cost is explained rather than claimed as free', () => {
 	const billed = normalizeUsage({
 		totals: { total_input: 10, total_estimated_cost: 3, total_actual_cost: 4 }
 	});
-	assert.match(costNote(billed) ?? '', /fournisseur/i);
+	assert.match(costNote(billed) ?? '', /provider/i);
 
 	// Nothing measured: no sentence at all, rather than one about free models.
 	assert.equal(costNote(emptyReport()), null);

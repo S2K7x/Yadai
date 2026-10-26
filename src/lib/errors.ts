@@ -66,41 +66,41 @@ export class ApiError extends Error {
 export function humanizeError(err: unknown): string {
 	if (!(err instanceof ApiError)) {
 		const message = err instanceof Error ? err.message : String(err);
-		return message || 'Une erreur inattendue est survenue.';
+		return message || 'Something unexpected went wrong.';
 	}
 
 	switch (err.code) {
 		case AppErrorCode.Unreachable:
-			return "Yadai ne répond pas. Le gateway est-il démarré ? (systemctl --user status hermes-gateway)";
+			return "Yadai is not responding. Is the gateway running? (systemctl --user status hermes-gateway)";
 		case AppErrorCode.Timeout:
-			return 'Yadai a mis trop de temps à répondre.';
+			return 'Yadai took too long to respond.';
 		case AppErrorCode.RateLimited:
-			return "Yadai exécute déjà le maximum de tours simultanés. Réessayez dans un instant.";
+			return "Yadai is already running the maximum number of simultaneous turns. Try again in a moment.";
 		case AppErrorCode.TooLarge:
-			return 'Message trop volumineux. Réduisez la taille ou le nombre des images.';
+			return 'Message too large. Reduce the size or number of images.';
 		case AppErrorCode.SessionGone:
-			return "Cette conversation n'existe plus (supprimée ailleurs ?).";
+			return "This conversation no longer exists (deleted elsewhere?).";
 		case 'session_exists':
-			return 'Une conversation porte déjà cet identifiant.';
+			return 'A conversation already uses this identifier.';
 		case 'invalid_title':
 			return err.message; // upstream explains which title collides
 		case 'session_db_unavailable':
-			return "La base de données de Yadai est indisponible (state.db).";
+			return "Yadai's database is unavailable (state.db).";
 		case 'model_lock_persistence_failed':
-			return "Le modèle demandé n'a pas pu être enregistré sur la conversation.";
+			return "The requested model could not be set on this conversation.";
 		case 'model_lock_unavailable':
 			// Upstream refuses rather than falling back to the global default.
-			return "Yadai ne sait pas router ce modèle. Vérifiez que le fournisseur est configuré (`hermes model`).";
+			return "Yadai cannot route this model. Check that its provider is configured (`hermes model`).";
 		case 'missing_model':
-			return 'Aucun modèle sélectionné.';
+			return 'No model selected.';
 		case 'push_unavailable':
-			return "Les notifications ne sont pas configurées sur le serveur (clés VAPID absentes).";
+			return "Notifications are not configured on the server (VAPID keys missing).";
 		case 'device_not_found':
-			return "Cet appareil n'est plus abonné aux notifications.";
+			return "This device is no longer subscribed to notifications.";
 	}
 
 	if (err.status === 401 || err.status === 403) {
-		return "Authentification refusée par Yadai. HERMES_API_KEY correspond-elle à API_SERVER_KEY ?";
+		return "Yadai refused authentication. Does HERMES_API_KEY match API_SERVER_KEY?";
 	}
-	return err.message || `Erreur HTTP ${err.status}.`;
+	return err.message || `HTTP error ${err.status}.`;
 }

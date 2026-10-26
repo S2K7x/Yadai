@@ -29,7 +29,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	if (typeof wanted !== 'string' || normalizeReasoning(wanted) !== wanted.trim().toLowerCase()) {
 		return errorResponse(
 			400,
-			`\`reasoning\` doit valoir ${REASONING_EFFORTS.join(', ')} ou null.`,
+			`\`reasoning\` must be one of ${REASONING_EFFORTS.join(', ')} or null.`,
 			'invalid_body'
 		);
 	}

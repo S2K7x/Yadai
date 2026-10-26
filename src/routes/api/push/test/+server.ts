@@ -17,14 +17,14 @@ export const POST: RequestHandler = async ({ url }) => {
 	if (!pushConfigured()) {
 		return errorResponse(
 			503,
-			'Les notifications ne sont pas configurées sur le serveur.',
+			'Notifications are not configured on the server.',
 			'push_unavailable'
 		);
 	}
 
 	const message = {
-		title: 'Hermes',
-		body: 'Notification de test — la chaîne fonctionne.',
+		title: 'Yadai',
+		body: 'Test notification — the whole chain works.',
 		url: '/',
 		tag: 'test'
 	};
@@ -32,7 +32,7 @@ export const POST: RequestHandler = async ({ url }) => {
 	const id = url.searchParams.get('id');
 	if (id) {
 		const row = findByDeviceId(id);
-		if (!row) return errorResponse(404, 'Cet appareil n’est plus abonné.', 'device_not_found');
+		if (!row) return errorResponse(404, 'This device is no longer subscribed.', 'device_not_found');
 		const outcome = await pushToDevice(row, message);
 		return json({ sent: outcome === 'sent' ? 1 : 0, failed: outcome === 'failed' ? 1 : 0, dropped: outcome === 'dropped' ? 1 : 0 });
 	}

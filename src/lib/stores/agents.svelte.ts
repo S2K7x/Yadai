@@ -67,21 +67,21 @@ class AgentStore {
 	async create(draft: AgentDraft): Promise<Agent | null> {
 		const res = await this.#write('/api/agents', 'POST', draft);
 		if (!res) return null;
-		toasts.success(`Agent « ${draft.name.trim()} » créé.`);
+		toasts.success(`Agent "${draft.name.trim()}" created.`);
 		return normalizeAgents([res.agent])[0] ?? null;
 	}
 
 	async update(id: string, draft: AgentDraft): Promise<Agent | null> {
 		const res = await this.#write(`/api/agents/${encodeURIComponent(id)}`, 'PATCH', draft);
 		if (!res) return null;
-		toasts.success('Agent enregistré.');
+		toasts.success('Agent saved.');
 		return normalizeAgents([res.agent])[0] ?? null;
 	}
 
 	async remove(id: string): Promise<boolean> {
 		const res = await this.#write(`/api/agents/${encodeURIComponent(id)}`, 'DELETE');
 		if (!res) return false;
-		toasts.success('Agent supprimé.');
+		toasts.success('Agent deleted.');
 		return true;
 	}
 }

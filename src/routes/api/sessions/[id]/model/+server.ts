@@ -18,7 +18,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
 	const model = typeof parsed.body.model === 'string' ? parsed.body.model.trim() : '';
 	if (!model) {
-		return errorResponse(400, 'Un identifiant de modèle est requis.', 'missing_model');
+		return errorResponse(400, 'A model id is required.', 'missing_model');
 	}
 	const provider = typeof parsed.body.provider === 'string' ? parsed.body.provider.trim() : '';
 

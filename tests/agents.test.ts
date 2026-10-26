@@ -257,7 +257,7 @@ test('composeSystemPrompt returns nothing for an unknown agent', () => {
 test('composeSystemPrompt of a leaf is the persona alone', () => {
 	const list = [agent('a', { name: 'Chercheur', role: 'Recherche web', prompt: 'Cite tes sources.' })];
 	const out = composeSystemPrompt(list, 'a');
-	assert.equal(out, 'Tu es Chercheur.\nTon métier : Recherche web\n\nCite tes sources.');
+	assert.equal(out, 'You are Chercheur.\nYour role: Recherche web\n\nCite tes sources.');
 	assert.ok(!out.includes('delegate_task'));
 });
 
@@ -275,7 +275,7 @@ test('composeSystemPrompt briefs an orchestrator on each teammate', () => {
 		agent('b', { name: 'Bob', role: 'Système', prompt: 'Mesure avant de conclure.' })
 	];
 	const out = composeSystemPrompt(list, 'chef');
-	assert.ok(out.startsWith('Tu es Chef.\nTon métier : Coordination'));
+	assert.ok(out.startsWith('You are Chef.\nYour role: Coordination'));
 	assert.ok(out.includes('Découpe.'));
 	assert.ok(out.includes('### Alice — Recherche'));
 	assert.ok(out.includes('Cite tes sources.'));
@@ -292,7 +292,7 @@ test('composeSystemPrompt tells the leader which teammates may delegate in turn'
 		agent('petit', { name: 'Petit' })
 	];
 	const out = composeSystemPrompt(list, 'chef');
-	assert.ok(out.includes('Dirige lui-même : Petit.'));
+	assert.ok(out.includes('Leads their own team: Petit.'));
 	assert.ok(out.includes('role: "orchestrator"'));
 });
 
@@ -303,7 +303,7 @@ test('composeSystemPrompt does not promise a sub-team a leaf cannot have', () =>
 		agent('petit', { name: 'Petit' })
 	];
 	const out = composeSystemPrompt(list, 'chef');
-	assert.ok(!out.includes('Dirige lui-même'));
+	assert.ok(!out.includes('Leads their own team'));
 });
 
 test('composeSystemPrompt clips a long teammate brief', () => {
@@ -319,7 +319,7 @@ test('composeSystemPrompt clips a long teammate brief', () => {
 test('composeSystemPrompt skips a teammate that no longer exists', () => {
 	const list = [agent('chef', { name: 'Chef', orchestrator: true, children: ['ghost'] })];
 	const out = composeSystemPrompt(list, 'chef');
-	assert.ok(!out.includes('Ton équipe'));
+	assert.ok(!out.includes('Your team'));
 });
 
 test('composeSystemPrompt cannot loop on a corrupt roster', () => {
@@ -352,7 +352,7 @@ test('validateAgent refuses a duplicate name, case-insensitively', () => {
 test('validateAgent refuses an agent that pilots itself', () => {
 	const list = [agent('a', { name: 'A' })];
 	const errors = validateAgent(list, 'a', draft({ name: 'A', orchestrator: true, children: ['a'] }));
-	assert.ok(errors.some((e) => e.includes('se piloter lui-même')));
+	assert.ok(errors.some((e) => e.includes('cannot lead itself')));
 });
 
 test('validateAgent refuses a loop and names the chain', () => {
@@ -365,7 +365,7 @@ test('validateAgent refuses a loop and names the chain', () => {
 		'sous',
 		draft({ name: 'Sous', orchestrator: true, children: ['chef'] })
 	);
-	assert.ok(errors.some((e) => e.startsWith("Boucle dans l'équipe")), errors.join(' | '));
+	assert.ok(errors.some((e) => e.startsWith('Loop in the team')), errors.join(' | '));
 	assert.ok(errors.some((e) => e.includes('Chef')));
 });
 
@@ -376,7 +376,7 @@ test('validateAgent catches a loop that closes several levels down', () => {
 		agent('c', { name: 'C', orchestrator: true, children: [] })
 	];
 	const errors = validateAgent(list, 'c', draft({ name: 'C', orchestrator: true, children: ['a'] }));
-	assert.ok(errors.some((e) => e.startsWith("Boucle dans l'équipe")), errors.join(' | '));
+	assert.ok(errors.some((e) => e.startsWith('Loop in the team')), errors.join(' | '));
 });
 
 test('validateAgent allows a diamond: two leaders, one shared specialist', () => {
@@ -403,7 +403,7 @@ test('validateAgent ignores the team of a non-orchestrator when checking loops',
 
 test('validateAgent refuses a teammate that does not exist', () => {
 	const errors = validateAgent([], null, draft({ orchestrator: true, children: ['ghost'] }));
-	assert.ok(errors.some((e) => e.includes("n'existe plus")));
+	assert.ok(errors.some((e) => e.includes('no longer exists')));
 });
 
 test('validateAgent enforces the roster cap on creation only', () => {
@@ -442,7 +442,7 @@ test('agentFromDraft keeps the original creation date on an edit', () => {
 test('duplicateDraft renames and keeps the team', () => {
 	const source = agent('a', { name: 'Chef', orchestrator: true, children: ['b'] });
 	const copy = duplicateDraft(source);
-	assert.equal(copy.name, 'Chef (copie)');
+	assert.equal(copy.name, 'Chef (copy)');
 	assert.deepEqual(copy.children, ['b']);
 	// A separate array: editing the copy must not touch the original.
 	copy.children.push('c');

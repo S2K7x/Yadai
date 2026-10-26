@@ -43,7 +43,7 @@ sw.addEventListener('activate', (event) => {
  */
 sw.addEventListener('push', (event) => {
 	let title = 'Yadai';
-	let body = 'Le tour est terminé.';
+	let body = 'The turn is finished.';
 	let url = '/';
 	let tag = 'yadai';
 	try {

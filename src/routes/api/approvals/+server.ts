@@ -49,7 +49,7 @@ export const GET: RequestHandler = async () => {
 			...OFF,
 			available: false,
 			message:
-				"Le dashboard de Yadai n'est pas configuré (HERMES_DASHBOARD_TOKEN absent) : la politique d'approbation ne peut pas être lue."
+				"The Hermes dashboard is not configured (HERMES_DASHBOARD_TOKEN missing): the approval policy cannot be read."
 		});
 	}
 
@@ -61,7 +61,7 @@ export const GET: RequestHandler = async () => {
 		const message =
 			err instanceof DashboardError
 				? err.message
-				: "La politique d'approbation n'a pas pu être lue.";
+				: "The approval policy could not be read.";
 		return json({ ...OFF, available: false, message });
 	}
 };
@@ -78,7 +78,7 @@ export const PUT: RequestHandler = async ({ request }) => {
 	// the client guessed — and a deep merge replaces a list wholesale.
 	const raw = parsed.body.policy;
 	if (!raw || typeof raw !== 'object') {
-		return new Response(JSON.stringify({ error: { message: 'policy manquante', code: 'invalid_body' } }), {
+		return new Response(JSON.stringify({ error: { message: 'missing policy', code: 'invalid_body' } }), {
 			status: 400,
 			headers: { 'Content-Type': 'application/json' }
 		});
@@ -88,7 +88,7 @@ export const PUT: RequestHandler = async ({ request }) => {
 	const plan = planPolicyUpdate(policy, {});
 	if (!plan.ok) {
 		return new Response(
-			JSON.stringify({ error: { message: 'politique non lue', code: 'invalid_body' } }),
+			JSON.stringify({ error: { message: 'policy not read', code: 'invalid_body' } }),
 			{ status: 400, headers: { 'Content-Type': 'application/json' } }
 		);
 	}
@@ -103,7 +103,7 @@ export const PUT: RequestHandler = async ({ request }) => {
 		return json({ ...plan.policy, available: true, message: '' });
 	} catch (err) {
 		const message =
-			err instanceof DashboardError ? err.message : "L'enregistrement a échoué.";
+			err instanceof DashboardError ? err.message : 'Saving failed.';
 		const status = err instanceof DashboardError ? err.status : 502;
 		return new Response(JSON.stringify({ error: { message, code: 'dashboard_error' } }), {
 			status,

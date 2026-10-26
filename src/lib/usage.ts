@@ -123,7 +123,7 @@ export function resolvePeriod(value: unknown): UsagePeriod {
 }
 
 export function periodLabel(days: number): string {
-	return days === 7 ? '7 jours' : days === 90 ? '90 jours' : `${days} jours`;
+	return days === 7 ? '7 days' : days === 90 ? '90 days' : `${days} days`;
 }
 
 // ---------------------------------------------------------------------------
@@ -259,25 +259,25 @@ function dayIndex(iso: string): number | null {
 }
 
 const MONTHS = [
-	'janv.',
-	'févr.',
-	'mars',
-	'avr.',
-	'mai',
-	'juin',
-	'juil.',
-	'août',
-	'sept.',
-	'oct.',
-	'nov.',
-	'déc.'
+	'Jan',
+	'Feb',
+	'Mar',
+	'Apr',
+	'May',
+	'Jun',
+	'Jul',
+	'Aug',
+	'Sep',
+	'Oct',
+	'Nov',
+	'Dec'
 ];
 
-/** `2026-10-06` → `6 oct.`, formatted from the string's own fields. */
+/** `2026-10-06` → `Oct 6`, formatted from the string's own fields. */
 export function dayLabel(iso: string): string {
 	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
 	if (!m) return iso;
-	return `${Number(m[3])} ${MONTHS[Number(m[2]) - 1] ?? m[2]}`;
+	return `${MONTHS[Number(m[2]) - 1] ?? m[2]} ${Number(m[3])}`;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -383,10 +383,10 @@ export function costNote(report: UsageReport): string | null {
 	if (!hasUsage(report)) return null;
 	if (report.totals.cost > 0) {
 		return report.totals.estimated
-			? "Coût estimé à partir des tarifs que Hermes connaît ; aucun montant n'est facturé par cette interface."
-			: 'Coût rapporté par le fournisseur.';
+			? "Cost estimated from the prices Hermes knows; nothing is billed by this interface."
+			: 'Cost reported by the provider.';
 	}
-	return 'Aucun coût enregistré : les modèles utilisés sont gratuits, ou leur tarif est inconnu de Hermes.';
+	return 'No cost recorded: the models used are free, or Hermes does not know their price.';
 }
 
 /**
@@ -394,17 +394,17 @@ export function costNote(report: UsageReport): string | null {
  * one.
  *
  * Zeroes are dropped rather than printed, because both of them really happen:
- * a session row exists before its first billable call (`0 appels`), and an
+ * a session row exists before its first billable call (`0 calls`), and an
  * auxiliary-only model — a dedicated vision or compression model, folded in
  * upstream by `_merge_aux_into_by_model` — never increments the session
  * counter at all (`0 sessions`). Both were measured on this host's 90-day
- * window. Singulars are spelled out for the same reason: "1 appels" is the
+ * window. Singulars are spelled out for the same reason: "1 calls" is the
  * tell of a line assembled rather than written.
  */
 export function modelDetail(model: UsageModel): string {
 	const parts: string[] = [];
 	if (model.apiCalls > 0) {
-		parts.push(`${formatCount(model.apiCalls)} ${model.apiCalls === 1 ? 'appel' : 'appels'}`);
+		parts.push(`${formatCount(model.apiCalls)} ${model.apiCalls === 1 ? 'call' : 'calls'}`);
 	}
 	if (model.sessions > 0) {
 		parts.push(`${formatCount(model.sessions)} session${model.sessions === 1 ? '' : 's'}`);
@@ -433,27 +433,27 @@ export function usageTiles(report: UsageReport): UsageTile[] {
 	return [
 		{
 			key: 'input',
-			label: 'Tokens envoyés',
+			label: 'Tokens sent',
 			value: formatTokens(t.inputTokens),
-			detail: t.cacheReadTokens > 0 ? `dont ${formatTokens(t.cacheReadTokens)} lus en cache` : ''
+			detail: t.cacheReadTokens > 0 ? `${formatTokens(t.cacheReadTokens)} read from cache` : ''
 		},
 		{
 			key: 'output',
-			label: 'Tokens produits',
+			label: 'Tokens generated',
 			value: formatTokens(t.outputTokens),
-			detail: t.reasoningTokens > 0 ? `dont ${formatTokens(t.reasoningTokens)} de réflexion` : ''
+			detail: t.reasoningTokens > 0 ? `${formatTokens(t.reasoningTokens)} of thinking` : ''
 		},
 		{
 			key: 'cost',
-			label: t.estimated ? 'Coût estimé' : 'Coût',
+			label: t.estimated ? 'Estimated cost' : 'Cost',
 			value: formatCost(t.cost),
 			detail: ''
 		},
 		{
 			key: 'calls',
-			label: 'Appels au modèle',
+			label: 'Model calls',
 			value: formatCount(t.apiCalls),
-			detail: t.sessions > 0 ? `sur ${formatCount(t.sessions)} sessions Hermes` : ''
+			detail: t.sessions > 0 ? `across ${formatCount(t.sessions)} Hermes sessions` : ''
 		}
 	];
 }

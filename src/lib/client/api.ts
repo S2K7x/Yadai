@@ -31,7 +31,7 @@ export async function api<T>(
 		const timeout = (err as Error)?.name === 'TimeoutError';
 		throw new ApiError(
 			timeout ? 504 : 0,
-			timeout ? 'Délai dépassé.' : 'Connexion perdue.',
+			timeout ? 'Timed out.' : 'Connection lost.',
 			timeout ? AppErrorCode.Timeout : AppErrorCode.Unreachable
 		);
 	}
@@ -43,7 +43,7 @@ export async function api<T>(
 		const body = parsed as ApiErrorBody | null;
 		throw new ApiError(
 			res.status,
-			body?.error?.message || text || `Erreur HTTP ${res.status}`,
+			body?.error?.message || text || `HTTP error ${res.status}`,
 			body?.error?.code || AppErrorCode.Unknown,
 			body?.error?.retry_after ?? Number(res.headers.get('Retry-After')) ?? undefined
 		);

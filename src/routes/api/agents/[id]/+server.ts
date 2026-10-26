@@ -16,14 +16,14 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
 	const list = listAgents();
 	const existing = list.find((a) => a.id === params.id);
-	if (!existing) return errorResponse(404, "Cet agent n'existe plus.", 'agent_not_found');
+	if (!existing) return errorResponse(404, 'This agent no longer exists.', 'agent_not_found');
 
 	const draft = draftFromBody(parsed.body);
 	const errors = validateAgent(list, existing.id, draft);
 	if (errors.length > 0) return errorResponse(400, errors.join(' '), 'invalid_agent');
 
 	const agent = agentFromDraft(draft, existing.id, existing.created_at);
-	if (!agent) return errorResponse(400, "Cet agent n'a pas pu être enregistré.", 'invalid_agent');
+	if (!agent) return errorResponse(400, 'This agent could not be saved.', 'invalid_agent');
 
 	saveAgent(agent);
 	return json({ agent, agents: listAgents() });
@@ -34,7 +34,7 @@ export const DELETE: RequestHandler = ({ params }) => {
 	if (limited) return limited;
 
 	if (!removeAgent(params.id)) {
-		return errorResponse(404, "Cet agent n'existe plus.", 'agent_not_found');
+		return errorResponse(404, 'This agent no longer exists.', 'agent_not_found');
 	}
 	return json({ agents: listAgents() });
 };

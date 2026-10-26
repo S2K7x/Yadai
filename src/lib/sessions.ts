@@ -10,7 +10,10 @@ export function sessionLabel(s: HermesSession): string {
 	if (title) return title;
 	const preview = s.preview?.trim();
 	if (preview) return preview.length > 48 ? `${preview.slice(0, 47)}…` : preview;
-	return 'Sans titre';
+	// "New chat" is the row "New chat" just made, still waiting for its first
+	// message (and the title that message gives it). "Untitled" is reserved
+	// for a conversation that has messages and still no name.
+	return s.message_count ? 'Untitled' : 'New chat';
 }
 
 /** Short relative time for a sidebar row. */
@@ -18,10 +21,10 @@ export function relativeTime(ts: number, now: Date = new Date()): string {
 	if (!ts) return '';
 	const date = new Date(ts * 1000);
 	const days = daysAgo(ts, now);
-	if (days === 0) return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-	if (days === 1) return 'hier';
-	if (days < 7) return `${days} j`;
-	return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+	if (days === 0) return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+	if (days === 1) return 'yesterday';
+	if (days < 7) return `${days}d`;
+	return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 /**
@@ -39,7 +42,7 @@ const localDay = (d: Date): number =>
  * Whole calendar days between a timestamp and now: 0 today, 1 yesterday.
  *
  * Counted in days, not in elapsed time, because that is what the labels mean —
- * something from 23:50 yesterday is "hier" ten minutes later, and something
+ * something from 23:50 yesterday is "yesterday" ten minutes later, and something
  * from this morning stays "today" all evening. A timestamp in the future
  * (clock skew between the Pi and Hermes) reads as today rather than negative.
  */
@@ -63,12 +66,12 @@ export function groupSessions(sessions: HermesSession[], now: Date = new Date())
 	const sorted = [...sessions].sort((a, b) => activityAt(b) - activityAt(a));
 
 	const bands: SessionGroup[] = [
-		{ key: 'pinned', label: 'Épinglées', sessions: [] },
-		{ key: 'today', label: "Aujourd'hui", sessions: [] },
-		{ key: 'yesterday', label: 'Hier', sessions: [] },
-		{ key: 'week', label: '7 derniers jours', sessions: [] },
-		{ key: 'month', label: '30 derniers jours', sessions: [] },
-		{ key: 'older', label: 'Plus ancien', sessions: [] }
+		{ key: 'pinned', label: 'Pinned', sessions: [] },
+		{ key: 'today', label: 'Today', sessions: [] },
+		{ key: 'yesterday', label: 'Yesterday', sessions: [] },
+		{ key: 'week', label: 'Previous 7 days', sessions: [] },
+		{ key: 'month', label: 'Previous 30 days', sessions: [] },
+		{ key: 'older', label: 'Older', sessions: [] }
 	];
 	const byKey = Object.fromEntries(bands.map((b) => [b.key, b]));
 

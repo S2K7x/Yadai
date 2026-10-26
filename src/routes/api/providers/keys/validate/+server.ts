@@ -24,14 +24,14 @@ export const POST: RequestHandler = async ({ request }) => {
 	if ('response' in parsed) return parsed.response;
 
 	if (!isEnvKeyName(parsed.body.key)) {
-		return errorResponse(400, 'Nom de variable invalide.', 'invalid_env_key');
+		return errorResponse(400, 'Invalid variable name.', 'invalid_env_key');
 	}
 	const value = parsed.body.value;
 	if (typeof value !== 'string' || value.trim() === '') {
-		return errorResponse(400, 'Saisissez une valeur.', 'invalid_env_value');
+		return errorResponse(400, 'Enter a value.', 'invalid_env_value');
 	}
 	if (value.length > MAX_KEY_LENGTH) {
-		return errorResponse(400, 'Valeur trop longue pour une clé API.', 'invalid_env_value');
+		return errorResponse(400, 'Value too long for an API key.', 'invalid_env_value');
 	}
 
 	return dashboardResponse(() => validateCredential(parsed.body.key as string, value.trim()));

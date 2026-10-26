@@ -44,7 +44,7 @@ export interface TrashState {
  *
  * Rounded **down**, deliberately. This number is the app promising how long
  * something can still be recovered, and the safe direction to be wrong in is
- * the pessimistic one: 29.9 days left reads as "29 jours", never as "30".
+ * the pessimistic one: 29.9 days left reads as "29 days left", never as "30".
  */
 export function trashState(
 	deletedAt: number,
@@ -63,9 +63,9 @@ export function trashLabel(
 	days: number = TRASH_DAYS
 ): string {
 	const { daysLeft, expired } = trashState(deletedAt, now, days);
-	if (expired) return 'suppression imminente';
-	if (daysLeft === 0) return 'dernier jour';
-	return daysLeft === 1 ? 'il reste 1 jour' : `il reste ${daysLeft} jours`;
+	if (expired) return 'deleting soon';
+	if (daysLeft === 0) return 'last day';
+	return daysLeft === 1 ? '1 day left' : `${daysLeft} days left`;
 }
 
 /** A bin row as the server keeps it: an id and when it was thrown away. */

@@ -71,7 +71,7 @@ class UsageStore {
 				// A read we could not make says nothing about the configuration,
 				// so it must not disable the panel. `failed` outranks `disabled`
 				// and is the one state re-read on the next opening.
-				this.loadError = res.message || "La consommation n'a pas pu être lue.";
+				this.loadError = res.message || "Usage could not be read.";
 			}
 		} catch (err) {
 			this.loadError = humanizeError(err);

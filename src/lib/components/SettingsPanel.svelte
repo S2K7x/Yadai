@@ -56,14 +56,14 @@
 			entries: [
 				{
 					icon: 'archive',
-					label: 'Archivées',
-					hint: 'Masquées des listes, retrouvées à la demande',
+					label: 'Archived',
+					hint: 'Hidden from lists, found on demand',
 					run: onshowArchived
 				},
 				{
 					icon: 'trash',
-					label: 'Corbeille',
-					hint: 'Supprimées, restaurables 30 jours',
+					label: 'Trash',
+					hint: 'Deleted, restorable for 30 days',
 					run: onshowTrash
 				}
 			]
@@ -74,55 +74,55 @@
 				{
 					icon: 'users',
 					label: 'Agents',
-					hint: "Personas, prompts et équipes",
+					hint: 'Personas, prompts and teams',
 					run: onopenAgents
 				},
 				{
 					icon: 'clock',
-					label: 'Tâches planifiées',
-					hint: 'Exécutées seules, même app fermée',
+					label: 'Scheduled tasks',
+					hint: 'Run on their own, even with the app closed',
 					run: onopenJobs
 				},
-				{ icon: 'book', label: 'Skills', hint: 'Éditer les SKILL.md du disque', run: onopenSkills },
+				{ icon: 'book', label: 'Skills', hint: 'Edit the SKILL.md files on disk', run: onopenSkills },
 				{
 					icon: 'key',
-					label: 'Approbations',
-					hint: 'Ce que Yadai peut lancer sans demander',
+					label: 'Approvals',
+					hint: 'What Yadai may run without asking',
 					run: onopenApprovals
 				},
 				{
 					icon: 'plug',
 					label: 'Providers',
-					hint: 'Clés API, comptes OAuth, modèle par défaut',
+					hint: 'API keys, OAuth accounts, default model',
 					run: onopenProviders
 				}
 			]
 		},
 		{
-			title: 'Application',
+			title: 'App',
 			entries: [
 				{
 					icon: 'contrast',
-					label: 'Apparence',
-					hint: 'Palette, mode clair ou sombre, accents',
+					label: 'Appearance',
+					hint: 'Palette, light or dark mode, accents',
 					run: onopenTheme
 				},
 				{
 					icon: 'keyboard',
-					label: 'Raccourcis clavier',
-					hint: "Tout se pilote sans la souris",
+					label: 'Keyboard shortcuts',
+					hint: 'Everything works without a mouse',
 					run: onopenShortcuts
 				},
 				{
 					icon: 'chart',
-					label: 'Consommation',
-					hint: 'Tokens, coût et outils sur 7, 30 ou 90 jours',
+					label: 'Usage',
+					hint: 'Tokens, cost and tools over 7, 30 or 90 days',
 					run: onopenUsage
 				},
 				{
 					icon: 'activity',
-					label: 'État du système',
-					hint: chat.connected === false ? 'Hors ligne' : `Yadai ${chat.version || '—'}`,
+					label: 'System status',
+					hint: chat.connected === false ? 'Offline' : `Yadai ${chat.version || '—'}`,
 					run: onopenStatus
 				}
 			]
@@ -152,8 +152,8 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<Modal {open} title="Réglages" width={480} {onclose}>
-	{#snippet subtitle()}Tout ce qui n'est pas la conversation{/snippet}
+<Modal {open} title="Settings" width={480} {onclose}>
+	{#snippet subtitle()}Everything that isn't the conversation{/snippet}
 	<div class="body">
 		{#each sections as section (section.title)}
 			<h3>{section.title}</h3>

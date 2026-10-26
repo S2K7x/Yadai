@@ -72,7 +72,7 @@ test('inlineTextFile builds a header, a tagged fence and the body', () => {
 	const result = inlineTextFile('config.yaml', 'model: opus\n');
 	assert.equal(result.ok, true);
 	if (!result.ok) return;
-	assert.equal(result.block, 'Fichier « config.yaml » :\n\n```yaml\nmodel: opus\n```');
+	assert.equal(result.block, 'File "config.yaml":\n\n```yaml\nmodel: opus\n```');
 	assert.equal(result.chars, 'model: opus'.length);
 });
 
@@ -80,7 +80,7 @@ test('inlineTextFile survives a file that itself contains a fence', () => {
 	const result = inlineTextFile('notes.md', 'Voici :\n\n```sh\nls -la\n```\n');
 	assert.equal(result.ok, true);
 	if (!result.ok) return;
-	assert.ok(result.block.startsWith('Fichier « notes.md » :\n\n````markdown\n'));
+	assert.ok(result.block.startsWith('File "notes.md":\n\n````markdown\n'));
 	assert.ok(result.block.endsWith('\n````'));
 	// The inner fence is still intact inside the block.
 	assert.ok(result.block.includes('```sh\nls -la\n```'));
@@ -90,7 +90,7 @@ test('inlineTextFile normalises CRLF and trailing blank lines', () => {
 	const result = inlineTextFile('a.txt', 'une\r\ndeux\r\n\r\n\r\n');
 	assert.equal(result.ok, true);
 	if (!result.ok) return;
-	assert.equal(result.block, 'Fichier « a.txt » :\n\n```\nune\ndeux\n```');
+	assert.equal(result.block, 'File "a.txt":\n\n```\nune\ndeux\n```');
 });
 
 test('inlineTextFile refuses rather than truncating or lying', () => {
@@ -108,10 +108,10 @@ test('inlineTextFile refuses rather than truncating or lying', () => {
 });
 
 test('refusalMessage names the file and says the number that matters', () => {
-	assert.match(refusalMessage('vide.txt', 'empty'), /« vide\.txt » ignoré : le fichier est vide\./);
-	assert.match(refusalMessage('/tmp/photo.jpg', 'binary'), /« photo\.jpg ».+images/);
-	assert.match(refusalMessage('gros.txt', 'too-large', 70_000), /70 000 caractères/);
-	assert.match(refusalMessage('gros.txt', 'too-large', 70_000), /60 000 insérables/);
+	assert.match(refusalMessage('vide.txt', 'empty'), /"vide\.txt" skipped: the file is empty\./);
+	assert.match(refusalMessage('/tmp/photo.jpg', 'binary'), /"photo\.jpg".+images/);
+	assert.match(refusalMessage('gros.txt', 'too-large', 70_000), /70,000 characters/);
+	assert.match(refusalMessage('gros.txt', 'too-large', 70_000), /60,000 that can be inserted/);
 });
 
 test('the two gates stay ordered: bytes are a looser bound than characters', () => {

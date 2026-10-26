@@ -10,8 +10,8 @@
 	});
 
 	function when(seconds: number | null): string {
-		if (!seconds) return 'jamais';
-		return new Date(seconds * 1000).toLocaleDateString('fr-FR', {
+		if (!seconds) return 'never';
+		return new Date(seconds * 1000).toLocaleDateString('en-GB', {
 			day: 'numeric',
 			month: 'short',
 			hour: '2-digit',
@@ -23,42 +23,42 @@
 <h3>Notifications</h3>
 
 {#if !push.loaded}
-	<p class="muted small note">Chargement…</p>
+	<p class="muted small note">Loading…</p>
 {:else if !push.available}
 	<p class="muted small note">
-		Non configuré sur le serveur : renseignez <code>VAPID_PUBLIC_KEY</code>,
-		<code>VAPID_PRIVATE_KEY</code> et <code>VAPID_SUBJECT</code>.
+		Not configured on the server: set <code>VAPID_PUBLIC_KEY</code>,
+		<code>VAPID_PRIVATE_KEY</code> and <code>VAPID_SUBJECT</code>.
 	</p>
 {:else if !push.supported}
-	<p class="muted small note">Ce navigateur ne gère pas les notifications Web Push.</p>
+	<p class="muted small note">This browser does not support Web Push notifications.</p>
 {:else if push.needsInstall}
 	<p class="muted small note">
-		Sur iPhone, les notifications ne fonctionnent qu'une fois l'app ajoutée à l'écran d'accueil :
-		bouton Partager → « Sur l'écran d'accueil », puis rouvrez Yadai depuis l'icône.
+		On iPhone, notifications only work once the app is added to the Home Screen:
+		Share button → "Add to Home Screen", then reopen Yadai from the icon.
 	</p>
 {:else if push.permission === 'denied'}
 	<p class="muted small note">
-		Notifications refusées pour cette app. Réautorisez-les dans les réglages du système ou du
-		navigateur, puis revenez ici.
+		Notifications are denied for this app. Allow them again in the system or
+		browser settings, then come back here.
 	</p>
 {:else}
 	<div class="row">
 		{#if push.enabled}
 			<button class="ghost" disabled={push.busy} onclick={() => push.disable()}>
-				Désactiver sur cet appareil
+				Turn off on this device
 			</button>
 			<button class="ghost" disabled={push.busy} onclick={() => push.test()}>
-				Envoyer un test
+				Send a test
 			</button>
 		{:else}
 			<button class="primary" disabled={push.busy} onclick={() => push.enable()}>
-				Activer sur cet appareil
+				Turn on for this device
 			</button>
 		{/if}
 	</div>
 	<p class="muted small note">
-		Prévient quand un tour se termine alors que l'app n'est pas à l'écran. Les réponses des tâches
-		planifiées et de Telegram ne passent pas par ici.
+		Lets you know when a turn finishes while the app is not on screen. Answers from scheduled
+		tasks and Telegram do not come through here.
 	</p>
 {/if}
 
@@ -68,13 +68,13 @@
 			<li>
 				<span class="li-icon"><Icon name={device.id === push.thisDeviceId ? 'phone' : 'moon'} size={15} /></span>
 				<span class="name">
-					{device.label}{device.id === push.thisDeviceId ? ' · cet appareil' : ''}
+					{device.label}{device.id === push.thisDeviceId ? ' · this device' : ''}
 					<span class="muted small block">
-						{pushServiceName(device.host)} · dernier envoi {when(device.last_ok_at)}
+						{pushServiceName(device.host)} · last sent {when(device.last_ok_at)}
 						{#if device.last_error}· <Icon name="warning" size={12} /> {device.last_error}{/if}
 					</span>
 				</span>
-				<button class="x" onclick={() => push.remove(device.id)} aria-label="Retirer {device.label}"
+				<button class="x" onclick={() => push.remove(device.id)} aria-label="Remove {device.label}"
 					><Icon name="close" size={13} /></button
 				>
 			</li>

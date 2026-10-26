@@ -134,20 +134,20 @@ export function readJobInput(body: JobBody): ValidJobInput | Response {
 	const agentId = typeof body.agentId === 'string' && body.agentId ? body.agentId : null;
 	const deliver = String(body.deliver ?? 'local').trim() || 'local';
 
-	if (!name) return errorResponse(400, 'Donnez un nom à la tâche.', 'invalid_job');
+	if (!name) return errorResponse(400, 'Give the task a name.', 'invalid_job');
 	if (name.length > MAX_JOB_NAME) {
-		return errorResponse(400, `Le nom dépasse ${MAX_JOB_NAME} caractères.`, 'invalid_job');
+		return errorResponse(400, `The name exceeds ${MAX_JOB_NAME} characters.`, 'invalid_job');
 	}
-	if (!instruction) return errorResponse(400, 'Décrivez ce que Hermes doit faire.', 'invalid_job');
+	if (!instruction) return errorResponse(400, 'Describe what Hermes should do.', 'invalid_job');
 
 	// An agent's card is baked into the prompt, so it eats into the upstream
 	// 5 000-character budget: the ceiling is not the same with and without one.
 	const agent = agentId ? findAgent(agentId) : undefined;
-	if (agentId && !agent) return errorResponse(400, "Cet agent n'existe plus.", 'invalid_job');
+	if (agentId && !agent) return errorResponse(400, 'This agent no longer exists.', 'invalid_job');
 
 	const limit = jobInstructionLimit(Boolean(agent));
 	if (instruction.length > limit) {
-		return errorResponse(400, `L'instruction dépasse ${limit} caractères.`, 'invalid_job');
+		return errorResponse(400, `The instruction exceeds ${limit} characters.`, 'invalid_job');
 	}
 
 	const check = parseSchedule(schedule);

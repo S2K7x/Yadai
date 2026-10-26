@@ -155,9 +155,9 @@ test('only a provider that answered and rejected the key blocks a save', () => {
 });
 
 test('validationMessage explains each verdict', () => {
-	assert.match(validationMessage({ ok: true, reachable: true }), /acceptée/);
-	assert.match(validationMessage({ ok: true, reachable: false }), /pas vérifiable/);
-	assert.match(validationMessage({ ok: false, reachable: false }), /Impossible de joindre/);
+	assert.match(validationMessage({ ok: true, reachable: true }), /accepted/);
+	assert.match(validationMessage({ ok: true, reachable: false }), /cannot be checked/);
+	assert.match(validationMessage({ ok: false, reachable: false }), /Could not reach/);
 	assert.equal(
 		validationMessage({ ok: false, reachable: true, message: 'Clé refusée.' }),
 		'Clé refusée.'
@@ -193,15 +193,15 @@ test('flowKind maps upstream flows, defaulting unknown ones to external', () => 
 
 test('accountSummary names where the credentials live once connected', () => {
 	assert.equal(isConnected(CLAUDE_CODE), true);
-	assert.equal(accountSummary(CLAUDE_CODE), 'Identifiants : ~/.claude/.credentials.json');
-	assert.match(accountSummary({ ...CLAUDE_CODE, status: { logged_in: true } }), /gérés par Yadai/);
+	assert.equal(accountSummary(CLAUDE_CODE), 'Credentials: ~/.claude/.credentials.json');
+	assert.match(accountSummary({ ...CLAUDE_CODE, status: { logged_in: true } }), /managed by Yadai/);
 });
 
 test('accountSummary describes the login method rather than repeating the pill', () => {
 	assert.equal(isConnected(NOUS), false);
-	assert.match(accountSummary(NOUS), /code d'appairage/);
-	assert.match(accountSummary({ ...NOUS, flow: 'pkce' }), /autorisation web/);
-	assert.match(accountSummary({ ...CLAUDE_CODE, status: { logged_in: false } }), /propre CLI/);
+	assert.match(accountSummary(NOUS), /pairing code/);
+	assert.match(accountSummary({ ...NOUS, flow: 'pkce' }), /through the web/);
+	assert.match(accountSummary({ ...CLAUDE_CODE, status: { logged_in: false } }), /own CLI/);
 });
 
 test('parseExpiry normalises seconds, milliseconds and ISO strings', () => {
@@ -291,7 +291,7 @@ test('advanceOauthFlow surfaces the upstream error message', () => {
 	const failed = advanceOauthFlow(flow, { status: 'error', error_message: 'boom' }, T0);
 	assert.equal(failed.message, 'boom');
 	const blank = advanceOauthFlow(flow, { status: 'error', error_message: '  ' }, T0);
-	assert.match(blank.message, /échoué/);
+	assert.match(blank.message, /failed/);
 });
 
 test('advanceOauthFlow leaves a pending flow alone until it expires', () => {

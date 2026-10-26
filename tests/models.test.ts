@@ -118,9 +118,9 @@ test('modelEntries leaves the price null when the provider has no catalogue', ()
 });
 
 test('priceLabel reads the formatted figures, and never guesses', () => {
-	assert.equal(priceLabel({ input: '$2.00', output: '$10.00', free: false }), '$2.00 / $10.00 par Mtok');
-	assert.equal(priceLabel({ input: 'free', output: 'free', free: true }), 'Gratuit');
-	assert.equal(priceLabel({ input: '$2.00', output: '', free: false }), '$2.00 par Mtok');
+	assert.equal(priceLabel({ input: '$2.00', output: '$10.00', free: false }), '$2.00 / $10.00 per Mtok');
+	assert.equal(priceLabel({ input: 'free', output: 'free', free: true }), 'Free');
+	assert.equal(priceLabel({ input: '$2.00', output: '', free: false }), '$2.00 per Mtok');
 	// No figure at all must read as "unknown", not as "free".
 	assert.equal(priceLabel({ input: '', output: '', free: false }), null);
 	assert.equal(priceLabel(null), null);
@@ -130,9 +130,9 @@ test('priceLabel reads the formatted figures, and never guesses', () => {
 test('priceDetail spells out the three figures for the tooltip', () => {
 	assert.equal(
 		priceDetail({ input: '$2.00', output: '$10.00', cache: '$0.20', free: false }),
-		'Entrée $2.00 · Sortie $10.00 · Cache $0.20, par million de jetons'
+		'Input $2.00 · Output $10.00 · Cache $0.20, per million tokens'
 	);
-	assert.equal(priceDetail({ input: 'free', output: 'free', free: true }), 'Gratuit, par million de jetons');
+	assert.equal(priceDetail({ input: 'free', output: 'free', free: true }), 'Free, per million tokens');
 	assert.equal(priceDetail({ cache: null, free: false }), null);
 	assert.equal(priceDetail(null), null);
 });

@@ -55,7 +55,7 @@
 	/** Never drop edits on a click — ask, the way a text editor would. */
 	function guard(): boolean {
 		if (!skillsStore.dirty) return true;
-		return confirm('Des modifications ne sont pas enregistrées. Les abandonner ?');
+		return confirm('Some changes are not saved. Discard them?');
 	}
 
 	function pick(ref: SkillRef) {
@@ -111,33 +111,33 @@
 <Modal {open} title="Skills" width={1080} fill onclose={tryClose}>
 	{#snippet subtitle()}
 		{#if skillsStore.state === 'failed'}
-			liste illisible
+			list unreadable
 		{:else if skillsStore.state === 'disabled'}
-			indisponible
+			unavailable
 		{:else}
-			fichiers sur le Pi · un redémarrage du gateway peut être nécessaire
+			files on the Pi · a gateway restart may be needed
 		{/if}
 	{/snippet}
 
 	{#if skillsStore.state === 'failed'}
 		<div class="unavailable">
-			<p>La liste des skills n'a pas pu être lue.</p>
+			<p>The skill list could not be read.</p>
 			<p class="muted small">{skillsStore.loadError}</p>
 			<p class="muted small">
-				Le répertoire est peut-être monté et parfaitement sain : cet écran dit seulement que
-				la requête a échoué.
+				The directory may well be mounted and healthy: this screen only says that
+				the request failed.
 			</p>
 			<button onclick={() => skillsStore.refresh()} disabled={skillsStore.loading}>
-				{skillsStore.loading ? 'Lecture…' : 'Réessayer'}
+				{skillsStore.loading ? 'Reading…' : 'Retry'}
 			</button>
 		</div>
 	{:else if skillsStore.state === 'disabled'}
 		<div class="unavailable">
-			<p>L'édition des skills est désactivée.</p>
+			<p>Skill editing is turned off.</p>
 			<p class="muted small">
-				Le répertoire des skills n'est pas monté dans le conteneur. Ajoutez le volume
-				<code>/skills</code> et la variable <code>SKILLS_DIR</code> (voir
-				<code>docker-compose.yml</code>), puis relancez <code>docker compose up -d</code>.
+				The skills directory is not mounted in the container. Add the
+				<code>/skills</code> volume and the <code>SKILLS_DIR</code> variable (see
+				<code>docker-compose.yml</code>), then run <code>docker compose up -d</code> again.
 			</p>
 		</div>
 	{:else}
@@ -146,18 +146,18 @@
 				<div class="tools">
 					<input
 						bind:value={query}
-						placeholder="Filtrer…"
-						aria-label="Filtrer les skills"
+						placeholder="Filter…"
+						aria-label="Filter skills"
 						type="search"
 					/>
-					<button class="new" onclick={startCreate}>＋ Nouveau</button>
+					<button class="new" onclick={startCreate}>＋ New</button>
 				</div>
 
 				<div class="list">
 					{#if skillsStore.loading && skillsStore.entries.length === 0}
-						<p class="none">Chargement…</p>
+						<p class="none">Loading…</p>
 					{:else if groups.length === 0}
-						<p class="none">Aucun skill.</p>
+						<p class="none">No skills.</p>
 					{/if}
 
 					{#each groups as group (group.category)}
@@ -168,7 +168,7 @@
 									<button
 										class="desc"
 										class:sel={isSelected(group.description)}
-										title="Modifier la description de la catégorie"
+										title="Edit the category description"
 										onclick={() =>
 											pick({
 												category: group.category,
@@ -197,9 +197,9 @@
 			<section class="editor">
 				{#if creating}
 					<div class="form">
-						<h3>Nouveau skill</h3>
+						<h3>New skill</h3>
 						<label>
-							Catégorie
+							Category
 							<input
 								bind:value={newCategory}
 								list="skill-categories"
@@ -212,24 +212,24 @@
 							{/each}
 						</datalist>
 						<label>
-							Nom du skill
-							<input bind:value={newName} placeholder="ma-veille-tech" />
+							Skill name
+							<input bind:value={newName} placeholder="my-tech-watch" />
 						</label>
 						<label>
-							Description (une phrase : quand Yadai doit s'en servir)
-							<input bind:value={newDescription} placeholder="Optionnel" />
+							Description (one sentence: when Yadai should use it)
+							<input bind:value={newDescription} placeholder="Optional" />
 						</label>
 						<p class="muted small">
-							Sera créé dans
-							<code>{categorySlug || '<catégorie>'}/{slug || '<nom>'}/SKILL.md</code>
+							Will be created at
+							<code>{categorySlug || '<category>'}/{slug || '<name>'}/SKILL.md</code>
 							{#if !skillsStore.categories.includes(categorySlug) && categorySlug}
-								· nouvelle catégorie, avec son <code>DESCRIPTION.md</code>
+								· new category, with its <code>DESCRIPTION.md</code>
 							{/if}
 						</p>
 						<div class="actions">
-							<button onclick={() => (creating = false)}>Annuler</button>
+							<button onclick={() => (creating = false)}>Cancel</button>
 							<button class="primary" disabled={!canCreate} onclick={submitCreate}>
-								{submitting ? 'Création…' : 'Créer'}
+								{submitting ? 'Creating…' : 'Create'}
 							</button>
 						</div>
 					</div>
@@ -241,30 +241,30 @@
 									? '/' + skillsStore.selected.skill
 									: ''}/{skillsStore.selected.file}</code
 							>
-							{#if skillsStore.dirty}<span class="dot" title="Non enregistré">●</span>{/if}
+							{#if skillsStore.dirty}<span class="dot" title="Not saved">●</span>{/if}
 						</div>
 						<span class="muted small" class:over={overLimit}>
-							{skillsStore.content.length} caractères · {formatBytes(bytes)}
+							{skillsStore.content.length} characters · {formatBytes(bytes)}
 						</span>
 					</div>
 
 					{#if skillsStore.loadingFile}
-						<p class="none">Chargement…</p>
+						<p class="none">Loading…</p>
 					{:else}
 						<textarea
 							bind:value={skillsStore.content}
 							spellcheck="false"
-							aria-label="Contenu du fichier"
+							aria-label="File content"
 						></textarea>
 					{/if}
 
 					<div class="edit-foot">
 						<span class="muted small">
 							{#if skillsStore.savedOnce}
-								Enregistré sur le disque. Un nouveau skill n'est pris en compte qu'après
+								Saved to disk. A new skill is only picked up after
 								<code>systemctl --user restart hermes-gateway</code>.
 							{:else}
-								Écriture directe dans le fichier. ⌘/Ctrl + S enregistre.
+								Writes straight to the file. ⌘/Ctrl + S saves.
 							{/if}
 						</span>
 						<button
@@ -272,11 +272,11 @@
 							disabled={!skillsStore.dirty || skillsStore.saving || overLimit}
 							onclick={() => skillsStore.save()}
 						>
-							{skillsStore.saving ? 'Enregistrement…' : 'Enregistrer'}
+							{skillsStore.saving ? 'Saving…' : 'Save'}
 						</button>
 					</div>
 				{:else}
-					<p class="none">Choisissez un skill à gauche, ou créez-en un.</p>
+					<p class="none">Pick a skill on the left, or create one.</p>
 				{/if}
 			</section>
 		</div>

@@ -91,7 +91,7 @@
 					key: `m:${hit.id}`,
 					kind: 'message',
 					label: `${hit.before}${hit.match}${hit.after}`,
-					hint: `${hit.role === 'user' ? 'Vous' : 'Yadai'}${hit.count > 1 ? ` · ${hit.count}×` : ''}`,
+					hint: `${hit.role === 'user' ? 'You' : 'Yadai'}${hit.count > 1 ? ` · ${hit.count}×` : ''}`,
 					snippet: { before: hit.before, match: hit.match, after: hit.after },
 					run: () => onjump?.(hit.id)
 				}))
@@ -161,7 +161,7 @@
 						{
 							key: 'x:run',
 							kind: 'elsewhere',
-							label: `Chercher « ${needle} » dans les autres conversations`,
+							label: `Search “${needle}” in other conversations`,
 							keepOpen: true,
 							run: () => void searchEverywhere(needle)
 						}
@@ -184,21 +184,21 @@
 	/** What the search is doing, said outside the listbox — which holds options only. */
 	let elsewhereNote = $derived.by(() => {
 		if (!canSearchEverywhere) return '';
-		if (searching) return 'Recherche dans les autres conversations…';
+		if (searching) return 'Searching other conversations…';
 		if (searchError) return searchError;
 		if (!elsewhereFresh) return '';
 		const found = matchedElsewhere.length;
 		const scanned = elsewhere?.scanned ?? 0;
-		const scope = `${scanned} conversation${scanned > 1 ? 's' : ''} explorée${scanned > 1 ? 's' : ''}`;
-		const more = elsewhere?.truncated ? ' — les plus récentes seulement' : '';
-		return found ? `${scope}${more}.` : `Rien trouvé ailleurs — ${scope}${more}.`;
+		const scope = `${scanned} conversation${scanned > 1 ? 's' : ''} searched`;
+		const more = elsewhere?.truncated ? ' — most recent only' : '';
+		return found ? `${scope}${more}.` : `Nothing found elsewhere — ${scope}${more}.`;
 	});
 
 	const HEADS: Record<Row['kind'], string> = {
 		command: 'Actions',
-		message: 'Dans cette conversation',
+		message: 'In this conversation',
 		session: 'Conversations',
-		elsewhere: 'Dans les autres conversations'
+		elsewhere: 'In other conversations'
 	};
 
 	// A heading is carried by the first row of each group, so the rendered list
@@ -297,15 +297,15 @@
 		onkeydown={(event) => card && trapTab(card, event)}
 		role="dialog"
 		aria-modal="true"
-		aria-label="Palette de commandes"
+		aria-label="Command palette"
 		tabindex="-1"
 	>
 		<input
 			bind:this={input}
 			bind:value={query}
 			onkeydown={onKeydown}
-			placeholder="Rechercher un message, une conversation, une action…"
-			aria-label="Recherche"
+			placeholder="Search messages, conversations, actions…"
+			aria-label="Search"
 			role="combobox"
 			aria-controls="palette-results"
 			aria-expanded={rows.length > 0}
@@ -317,7 +317,7 @@
 			bind:this={list}
 			id="palette-results"
 			role="listbox"
-			aria-label="Résultats"
+			aria-label="Results"
 		>
 			{#each groups as group (group.head)}
 				<div role="group" aria-label={group.head}>
@@ -360,7 +360,7 @@
 		{#if rows.length === 0}
 			<!-- Outside the listbox, which may hold nothing but options: an empty
 			     result is the one state the cursor cannot announce by itself. -->
-			<p class="none" role="status">Aucun résultat.</p>
+			<p class="none" role="status">No results.</p>
 		{/if}
 		<!-- Same reason: how far the cross-conversation search got is a status,
 		     not an option, and a listbox may hold nothing but options. -->
@@ -368,8 +368,8 @@
 			<p class="note" role="status">{elsewhereNote}</p>
 		{/if}
 		<div class="foot">
-			<kbd>↑</kbd><kbd>↓</kbd> naviguer · <kbd>↵</kbd> ouvrir · <kbd>esc</kbd> fermer{#if canSearchEverywhere && !elsewhereFresh}
-				· <kbd>{mod}</kbd><kbd>↵</kbd> chercher partout{/if}
+			<kbd>↑</kbd><kbd>↓</kbd> navigate · <kbd>↵</kbd> open · <kbd>esc</kbd> close{#if canSearchEverywhere && !elsewhereFresh}
+				· <kbd>{mod}</kbd><kbd>↵</kbd> search everywhere{/if}
 		</div>
 	</div>
 {/if}

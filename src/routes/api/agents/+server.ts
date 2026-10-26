@@ -40,7 +40,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (errors.length > 0) return errorResponse(400, errors.join(' '), 'invalid_agent');
 
 	const agent = agentFromDraft(draft, freeId(draft.name, new Set(list.map((a) => a.id))), 0);
-	if (!agent) return errorResponse(400, "Cet agent n'a pas pu être enregistré.", 'invalid_agent');
+	if (!agent) return errorResponse(400, 'This agent could not be saved.', 'invalid_agent');
 
 	saveAgent(agent);
 	return json({ agent, agents: listAgents() });

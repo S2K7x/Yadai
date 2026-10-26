@@ -54,7 +54,7 @@ export class SkillsFsError extends UpstreamError {
 }
 
 const UNAVAILABLE =
-	"L'édition des skills est désactivée : le répertoire des skills n'est pas monté " +
+	'Skill editing is turned off: the skills directory is not mounted ' +
 	'(SKILLS_DIR).';
 
 /** Realpath of the skills root, or a typed failure. Cheap enough to redo per call. */
@@ -87,10 +87,10 @@ async function resolveDir(root: string, segments: string[]): Promise<string> {
 	try {
 		real = await realpath(join(root, ...segments));
 	} catch {
-		throw new SkillsFsError(404, "Ce skill n'existe pas (ou plus).", 'skill_not_found');
+		throw new SkillsFsError(404, 'This skill does not exist (or no longer does).', 'skill_not_found');
 	}
 	if (!isInside(root, real)) {
-		throw new SkillsFsError(400, 'Chemin de skill refusé.', 'invalid_skill_path');
+		throw new SkillsFsError(400, 'Skill path refused.', 'invalid_skill_path');
 	}
 	return real;
 }
@@ -100,7 +100,7 @@ function segmentsOrThrow(ref: SkillRef): string[] {
 	if (!segments) {
 		throw new SkillsFsError(
 			400,
-			'Nom de catégorie, de skill ou de fichier invalide.',
+			'Invalid category, skill or file name.',
 			'invalid_skill_path'
 		);
 	}
@@ -175,7 +175,7 @@ export async function listCategories(): Promise<string[]> {
 	return dirents
 		.filter((d) => usableDir(d.name, d.isDirectory()))
 		.map((d) => d.name)
-		.sort((a, b) => a.localeCompare(b, 'fr'));
+		.sort((a, b) => a.localeCompare(b, 'en'));
 }
 
 /** Is the feature usable at all? Never throws — this drives the UI's on/off. */
@@ -202,13 +202,13 @@ export async function readSkillFile(ref: SkillRef): Promise<SkillFileContent> {
 
 	const info = await stat(path).catch(() => null);
 	if (!info?.isFile()) {
-		throw new SkillsFsError(404, "Ce fichier n'existe pas (ou plus).", 'skill_not_found');
+		throw new SkillsFsError(404, 'This file does not exist (or no longer does).', 'skill_not_found');
 	}
 	if (info.size > MAX_SKILL_BYTES) {
 		throw new SkillsFsError(
 			413,
-			`Fichier trop volumineux pour l'éditeur (${formatBytes(info.size)}). ` +
-				`Modifiez-le en ligne de commande.`,
+			`File too large for the editor (${formatBytes(info.size)}). ` +
+				`Edit it from the command line.`,
 			'skill_too_large'
 		);
 	}
@@ -240,18 +240,18 @@ async function writeAtomic(path: string, content: string): Promise<void> {
 	} catch (err) {
 		await unlink(tmp).catch(() => {});
 		const message = err instanceof Error ? err.message : String(err);
-		throw new SkillsFsError(500, `Écriture impossible : ${message}`, 'skill_write_failed');
+		throw new SkillsFsError(500, `Could not write: ${message}`, 'skill_write_failed');
 	}
 }
 
 function checkSize(content: string): void {
 	if (typeof content !== 'string') {
-		throw new SkillsFsError(400, 'Le contenu doit être une chaîne.', 'invalid_body');
+		throw new SkillsFsError(400, 'The content must be a string.', 'invalid_body');
 	}
 	if (utf8Length(content) > MAX_SKILL_BYTES) {
 		throw new SkillsFsError(
 			413,
-			`Contenu trop volumineux (max ${formatBytes(MAX_SKILL_BYTES)}).`,
+			`Content too large (max ${formatBytes(MAX_SKILL_BYTES)}).`,
 			'skill_too_large'
 		);
 	}
@@ -294,7 +294,7 @@ export async function createSkill(input: CreateSkillInput): Promise<SkillFileEnt
 	if (!isValidSkillName(input.category) || !isValidSkillName(input.name)) {
 		throw new SkillsFsError(
 			400,
-			'Les noms doivent être en minuscules, chiffres et tirets (ex. : ma-veille-tech).',
+			'Names must be lowercase letters, digits and hyphens (e.g. my-tech-watch).',
 			'invalid_skill_path'
 		);
 	}
@@ -315,23 +315,23 @@ export async function createSkill(input: CreateSkillInput): Promise<SkillFileEnt
 		await mkdir(categoryPath).catch((err) => {
 			throw new SkillsFsError(
 				500,
-				`Création de la catégorie impossible : ${err instanceof Error ? err.message : err}`,
+				`Could not create the category: ${err instanceof Error ? err.message : err}`,
 				'skill_write_failed'
 			);
 		});
 	} else if (!categoryInfo.isDirectory()) {
-		throw new SkillsFsError(400, "Cette catégorie n'est pas un répertoire.", 'invalid_skill_path');
+		throw new SkillsFsError(400, 'This category is not a directory.', 'invalid_skill_path');
 	}
 	categoryReal = await resolveDir(root, [input.category]);
 
 	const skillPath = join(categoryReal, input.name);
 	if (await stat(skillPath).catch(() => null)) {
-		throw new SkillsFsError(409, 'Un skill porte déjà ce nom dans cette catégorie.', 'skill_exists');
+		throw new SkillsFsError(409, 'A skill with this name already exists in this category.', 'skill_exists');
 	}
 	await mkdir(skillPath).catch((err) => {
 		throw new SkillsFsError(
 			500,
-			`Création du skill impossible : ${err instanceof Error ? err.message : err}`,
+			`Could not create the skill: ${err instanceof Error ? err.message : err}`,
 			'skill_write_failed'
 		);
 	});

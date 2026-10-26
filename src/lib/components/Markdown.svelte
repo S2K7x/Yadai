@@ -145,7 +145,7 @@
 			button.type = 'button';
 			button.dataset.copy = '1';
 			button.className = 'copy-btn';
-			button.textContent = 'copier';
+			button.textContent = 'copy';
 			pre.prepend(button);
 		}
 	}
@@ -160,8 +160,8 @@
 		const code = button.closest('pre')?.querySelector('code');
 		if (!code) return;
 		navigator.clipboard.writeText(code.textContent ?? '');
-		button.textContent = 'copié';
-		setTimeout(() => (button.textContent = 'copier'), 1400);
+		button.textContent = 'copied';
+		setTimeout(() => (button.textContent = 'copy'), 1400);
 	}
 </script>
 
@@ -198,10 +198,15 @@
 		opacity: 1;
 	}
 
-	/* Touch devices have no hover; keep it permanently visible there. */
+	/* Touch devices have no hover; keep it permanently visible there — and
+	   give it a strip of its own, or it sits on top of the first line of
+	   code, which is exactly the line a narrow screen has no room to spare. */
 	@media (hover: none) {
 		.md :global(.copy-btn) {
-			opacity: 0.7;
+			opacity: 0.85;
+		}
+		.md :global(pre.code-wrap code) {
+			padding-top: 2.6em;
 		}
 	}
 </style>

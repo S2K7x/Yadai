@@ -168,7 +168,7 @@ class ProvidersStore {
 				body: JSON.stringify({ key, value }),
 				timeoutMs: 25_000
 			});
-			toasts.success(`${key} enregistrée.`);
+			toasts.success(`${key} saved.`);
 			this.cancelEdit();
 			await this.#reloadAll();
 		} catch (err) {
@@ -187,7 +187,7 @@ class ProvidersStore {
 				body: JSON.stringify({ key }),
 				timeoutMs: 25_000
 			});
-			toasts.success(`${key} supprimée.`);
+			toasts.success(`${key} deleted.`);
 			if (this.editing === key) this.cancelEdit();
 			await this.#reloadAll();
 		} catch (err) {
@@ -245,11 +245,11 @@ class ProvidersStore {
 				}
 			);
 			if (res?.ok) {
-				this.flow = settleOauthFlow(flow, 'approved', 'Compte connecté.');
+				this.flow = settleOauthFlow(flow, 'approved', 'Account connected.');
 				this.code = '';
 				await this.#reloadAll();
 			} else {
-				this.flow = settleOauthFlow(flow, 'error', res?.message || 'La connexion a échoué.');
+				this.flow = settleOauthFlow(flow, 'error', res?.message || 'Sign-in failed.');
 			}
 		} catch (err) {
 			this.flow = settleOauthFlow(flow, 'error', humanizeError(err));
@@ -288,7 +288,7 @@ class ProvidersStore {
 				method: 'DELETE',
 				timeoutMs: 25_000
 			});
-			toasts.success(`${provider.name} déconnecté.`);
+			toasts.success(`${provider.name} disconnected.`);
 			await this.#reloadAll();
 		} catch (err) {
 			toasts.error(err);
@@ -366,12 +366,12 @@ class ProvidersStore {
 				this.confirmModel = {
 					provider,
 					model,
-					message: res.confirm_message || 'Ce modèle est signalé comme coûteux.'
+					message: res.confirm_message || 'This model is flagged as expensive.'
 				};
 				return;
 			}
 			this.confirmModel = null;
-			toasts.success(`Modèle par défaut : ${model}. Il s'appliquera aux nouvelles discussions.`);
+			toasts.success(`Default model: ${model}. It will apply to new chats.`);
 			await chat.refreshCatalog();
 		} catch (err) {
 			toasts.error(err);

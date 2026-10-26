@@ -193,17 +193,17 @@ export function inlineTextFile(name: string, content: string): InlineResult {
 	// line once it goes through the markdown renderer.
 	const body = content.replace(/\r\n?/g, '\n').replace(/\s+$/, '');
 	const fence = fenceFor(body);
-	const block = `Fichier « ${displayName(name)} » :\n\n${fence}${fenceLanguage(name)}\n${body}\n${fence}`;
+	const block = `File "${displayName(name)}":\n\n${fence}${fenceLanguage(name)}\n${body}\n${fence}`;
 	return { ok: true, block, chars: body.length };
 }
 
 /** Why a file was refused, said to the user with the numbers that matter. */
 export function refusalMessage(name: string, reason: InlineRefusal, chars = 0): string {
-	const quoted = `« ${displayName(name)} »`;
-	if (reason === 'empty') return `${quoted} ignoré : le fichier est vide.`;
+	const quoted = `"${displayName(name)}"`;
+	if (reason === 'empty') return `${quoted} skipped: the file is empty.`;
 	if (reason === 'binary')
-		return `${quoted} ignoré : ce n'est pas un fichier texte. Seules les images sont acceptées comme pièce jointe.`;
+		return `${quoted} skipped: it is not a text file. Only images are accepted as attachments.`;
 	const k = Math.round(chars / 1000);
 	const max = Math.round(MAX_INLINE_CHARS / 1000);
-	return `${quoted} ignoré : ${k > 0 ? `${k} 000 caractères, ` : ''}au-delà des ${max} 000 insérables d'un coup.`;
+	return `${quoted} skipped: ${k > 0 ? `${k},000 characters, ` : ''}beyond the ${max},000 that can be inserted at once.`;
 }

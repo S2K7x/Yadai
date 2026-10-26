@@ -147,23 +147,23 @@ export interface AnnounceableTurn {
  */
 export function turnAnnouncement(turn: AnnounceableTurn | undefined): string {
 	if (!turn || turn.role !== 'assistant') return '';
-	if (turn.error) return `Erreur : ${turn.error}`;
+	if (turn.error) return `Error: ${turn.error}`;
 	// Both detached states outlive the stream, so they come before it.
 	if (turn.detached === 'truncated')
-		return "Le flux s'est interrompu : la réponse affichée est incomplète.";
-	if (turn.detached === 'stopped') return "Affichage interrompu. L'agent termine en arrière-plan.";
+		return "The stream was cut off: the answer shown is incomplete.";
+	if (turn.detached === 'stopped') return "Display detached. The agent is finishing in the background.";
 
 	if (turn.streaming) {
 		// The newest running step, because that is the one taking the time.
 		for (let i = turn.steps.length - 1; i >= 0; i--) {
 			const step = turn.steps[i];
-			if (step.status === 'running') return `Outil ${step.tool_name} en cours.`;
+			if (step.status === 'running') return `Running tool ${step.tool_name}.`;
 		}
-		return turn.content ? 'Réponse en cours.' : 'Yadai réfléchit.';
+		return turn.content ? 'Answer in progress.' : 'Yadai is thinking.';
 	}
 
-	if (!turn.content) return 'Tour terminé sans réponse.';
+	if (!turn.content) return 'Turn finished without an answer.';
 	const tools = turn.steps.length;
-	if (tools === 0) return 'Réponse terminée.';
-	return `Réponse terminée après ${tools} outil${tools > 1 ? 's' : ''}.`;
+	if (tools === 0) return 'Answer complete.';
+	return `Answer complete after ${tools} tool${tools > 1 ? 's' : ''}.`;
 }

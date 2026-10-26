@@ -42,7 +42,7 @@ import { toasts } from './toast.svelte';
 const CACHE_KEY = 'yadai-theme-cache';
 
 const UNLOADED =
-	"Votre thème n'a pas pu être chargé : le modifier maintenant écraserait la palette enregistrée.";
+	"Your theme could not be loaded: changing it now would overwrite the saved palette.";
 
 interface ThemePayload {
 	theme: unknown;
@@ -137,7 +137,7 @@ class ThemeStore {
 		const result = planThemeUpdate(this.baseline, patch);
 		if (!result.ok) {
 			toasts.push('error', UNLOADED, {
-				action: { label: 'Réessayer', run: () => void this.reload() }
+				action: { label: 'Retry', run: () => void this.reload() }
 			});
 			return;
 		}

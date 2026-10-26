@@ -18,7 +18,7 @@ function keyOrError(raw: unknown): { key: string } | { response: Response } {
 		return {
 			response: errorResponse(
 				400,
-				'Nom de variable invalide : majuscules, chiffres et tirets bas uniquement.',
+				'Invalid variable name: uppercase letters, digits and underscores only.',
 				'invalid_env_key'
 			)
 		};
@@ -46,10 +46,10 @@ export const PUT: RequestHandler = async ({ request }) => {
 
 	const value = parsed.body.value;
 	if (typeof value !== 'string' || value.trim() === '') {
-		return errorResponse(400, 'Saisissez une valeur.', 'invalid_env_value');
+		return errorResponse(400, 'Enter a value.', 'invalid_env_value');
 	}
 	if (value.length > MAX_KEY_LENGTH) {
-		return errorResponse(400, 'Valeur trop longue pour une clé API.', 'invalid_env_value');
+		return errorResponse(400, 'Value too long for an API key.', 'invalid_env_value');
 	}
 
 	return dashboardResponse(() => setEnvVar(named.key, value.trim()));

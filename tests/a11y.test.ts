@@ -213,7 +213,7 @@ test('an open drawer announces itself as a modal dialog', () => {
 	// and a permanently visible `role="dialog"` would be a lie.
 	assert.match(SIDEBAR, /role=\{modal \? 'dialog' : undefined\}/);
 	assert.match(SIDEBAR, /aria-modal=\{modal \? 'true' : undefined\}/);
-	assert.match(SIDEBAR, /aria-label=\{modal \? 'Discussions' : undefined\}/);
+	assert.match(SIDEBAR, /aria-label=\{modal \? 'Chats' : undefined\}/);
 	assert.match(SIDEBAR, /let modal = \$derived\(drawer && open\)/);
 });
 
@@ -480,8 +480,8 @@ test('nothing is announced when there is no assistant turn to talk about', () =>
 });
 
 test('a running turn says which phase it is in', () => {
-	assert.equal(turnAnnouncement(turn({ streaming: true })), 'Yadai réfléchit.');
-	assert.equal(turnAnnouncement(turn({ streaming: true, content: 'Voici' })), 'Réponse en cours.');
+	assert.equal(turnAnnouncement(turn({ streaming: true })), 'Yadai is thinking.');
+	assert.equal(turnAnnouncement(turn({ streaming: true, content: 'Voici' })), 'Answer in progress.');
 });
 
 test('the newest running tool is the one named', () => {
@@ -489,20 +489,20 @@ test('the newest running tool is the one named', () => {
 		{ tool_name: 'terminal', status: 'done' },
 		{ tool_name: 'web_search', status: 'running' }
 	];
-	assert.equal(turnAnnouncement(turn({ streaming: true, steps })), 'Outil web_search en cours.');
+	assert.equal(turnAnnouncement(turn({ streaming: true, steps })), 'Running tool web_search.');
 	// Once it completes, the phase falls back to the text being written.
 	steps[1].status = 'done';
 	assert.equal(
 		turnAnnouncement(turn({ streaming: true, steps, content: 'a' })),
-		'Réponse en cours.'
+		'Answer in progress.'
 	);
 });
 
 test('the end of a turn is announced, with the work it took', () => {
-	assert.equal(turnAnnouncement(turn({ content: 'fini' })), 'Réponse terminée.');
+	assert.equal(turnAnnouncement(turn({ content: 'fini' })), 'Answer complete.');
 	assert.equal(
 		turnAnnouncement(turn({ content: 'fini', steps: [{ tool_name: 'terminal', status: 'done' }] })),
-		'Réponse terminée après 1 outil.'
+		'Answer complete after 1 tool.'
 	);
 	assert.equal(
 		turnAnnouncement(
@@ -514,26 +514,26 @@ test('the end of a turn is announced, with the work it took', () => {
 				]
 			})
 		),
-		'Réponse terminée après 2 outils.'
+		'Answer complete after 2 tools.'
 	);
-	assert.equal(turnAnnouncement(turn({})), 'Tour terminé sans réponse.');
+	assert.equal(turnAnnouncement(turn({})), 'Turn finished without an answer.');
 });
 
-test('a turn that failed or was let go says so instead of "terminée"', () => {
+test('a turn that failed or was let go says so instead of "complete"', () => {
 	assert.equal(
-		turnAnnouncement(turn({ error: 'Hermes est injoignable.' })),
-		'Erreur : Hermes est injoignable.'
+		turnAnnouncement(turn({ error: 'Hermes is unreachable.' })),
+		'Error: Hermes is unreachable.'
 	);
-	assert.match(turnAnnouncement(turn({ detached: 'stopped' })), /^Affichage interrompu\./);
-	assert.match(turnAnnouncement(turn({ detached: 'truncated' })), /incomplète\.$/);
+	assert.match(turnAnnouncement(turn({ detached: 'stopped' })), /^Display detached\./);
+	assert.match(turnAnnouncement(turn({ detached: 'truncated' })), /incomplete\.$/);
 	// Detaching leaves `streaming` false, but a truncation is noticed while the
 	// flag may still be up: the reason must win over the phase either way.
-	assert.match(turnAnnouncement(turn({ streaming: true, detached: 'truncated' })), /incomplète\.$/);
+	assert.match(turnAnnouncement(turn({ streaming: true, detached: 'truncated' })), /incomplete\.$/);
 });
 
 /**
  * The region only exists if the page renders it, and it must stay silent about
- * a transcript loaded from history — announcing "Réponse terminée." about a
+ * a transcript loaded from history — announcing "Answer complete." about a
  * conversation the user has just *opened* would be a lie about their own action.
  */
 test('the page owns a polite live region gated on a turn it watched stream', () => {
@@ -553,14 +553,14 @@ test('the page owns a polite live region gated on a turn it watched stream', () 
 test('the conversation says who is speaking, and the composer names its controls', () => {
 	const dir = new URL('../src/lib/components/', import.meta.url);
 	const message = readFileSync(new URL('Message.svelte', dir), 'utf8');
-	assert.match(message, /<span class="sr-only">Vous :<\/span>/);
-	assert.match(message, /<span class="sr-only">Yadai :<\/span>/);
+	assert.match(message, /<span class="sr-only">You:<\/span>/);
+	assert.match(message, /<span class="sr-only">Yadai:<\/span>/);
 
 	const composer = readFileSync(new URL('Composer.svelte', dir), 'utf8');
-	assert.match(composer, /aria-label="Envoyer le message"/);
-	assert.match(composer, /aria-label="Arrêter l'affichage"/);
+	assert.match(composer, /aria-label="Send message"/);
+	assert.match(composer, /aria-label="Stop display"/);
 	// The textarea's name must not flip to "Hermes travaille…" mid-turn.
-	assert.match(composer, /aria-label="Message à Yadai"/);
+	assert.match(composer, /aria-label="Message to Yadai"/);
 });
 
 /**
@@ -578,13 +578,18 @@ test('the phone header keeps the conversation title', () => {
 	// The counter is a desktop nicety; the same figures are in the status panel.
 	assert.match(page, /\{#if usage && !narrow\}/);
 	const phone = page.slice(page.indexOf('@media (max-width: 820px)'));
-	assert.match(phone, /\.head-actions \{[^}]*flex:\s*0 0 auto/);
-	assert.match(phone, /\.heading \{[^}]*min-width:\s*\d+px/);
-	// Five controls beside the title left it three characters wide. Apparence
+	// Two rows on a phone: burger, title and search first, the two pickers on
+	// a row of their own — measured at 390px, one row left the title five
+	// letters and pushed the model chip off the right edge.
+	assert.match(phone, /header \{[^}]*flex-wrap:\s*wrap/);
+	assert.match(phone, /\.head-actions \{[^}]*display:\s*contents/);
+	assert.match(phone, /\.pickers \{[^}]*flex:\s*1 0 100%/);
+	assert.match(phone, /\.heading \{[^}]*min-width:\s*0/);
+	// Five controls beside the title left it three characters wide. Appearance
 	// steps aside because it is also in the drawer's footer and in the palette;
 	// the conversation's name has nowhere else to be shown.
 	assert.match(phone, /\.icon\.theme \{[^}]*display:\s*none/);
-	assert.match(page, /class="icon theme"[\s\S]{0,120}aria-label="Apparence"/);
+	assert.match(page, /class="icon theme"[\s\S]{0,120}aria-label="Appearance"/);
 	assert.match(page, /id: 'appearance'/);
 });
 
@@ -602,7 +607,7 @@ test('the composer shortens its placeholder where the bar is narrow', () => {
 		'utf8'
 	);
 	assert.match(composer, /let \{ narrow = false \}: Props = \$props\(\)/);
-	assert.match(composer, /narrow\s*\?\s*'Écrire à Yadai…'/);
+	assert.match(composer, /narrow\s*\?\s*'Message Yadai…'/);
 	const page = readFileSync(new URL('../src/routes/+page.svelte', import.meta.url), 'utf8');
 	assert.match(page, /<Composer bind:this=\{composer\} \{narrow\} \/>/);
 });

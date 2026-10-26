@@ -17,7 +17,7 @@ const JOB_ID_RE = /^[a-f0-9]{12}$/;
 function badId(id: string): Response | null {
 	return JOB_ID_RE.test(id)
 		? null
-		: errorResponse(400, 'Identifiant de tâche invalide.', 'invalid_job_id');
+		: errorResponse(400, 'Invalid task id.', 'invalid_job_id');
 }
 
 interface ActionBody {
@@ -36,7 +36,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	if ('response' in parsed) return parsed.response;
 
 	const action = String(parsed.body.action ?? '');
-	if (!ACTIONS.has(action)) return errorResponse(400, 'Action inconnue.', 'invalid_job_action');
+	if (!ACTIONS.has(action)) return errorResponse(400, 'Unknown action.', 'invalid_job_action');
 
 	return proxy(() => jobAction(params.id, action as 'pause' | 'resume' | 'run'));
 };

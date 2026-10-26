@@ -71,7 +71,7 @@
 	// day the conversation was last *used* would sort it by the wrong clock.
 	let groups = $derived(
 		showTrash
-			? [{ key: 'trash', label: 'Dans la corbeille', sessions: visible }]
+			? [{ key: 'trash', label: 'In the trash', sessions: visible }]
 			: groupSessions(visible)
 	);
 
@@ -126,7 +126,7 @@
 		closeMenu();
 		if (
 			confirm(
-				`Supprimer définitivement « ${sessionLabel(s)} » ?\n\nCette fois la conversation et son transcript seront vraiment effacés, sans retour possible.`
+				`Delete "${sessionLabel(s)}" forever?\n\nThis time the conversation and its transcript will really be erased, with no way back.`
 			)
 		) {
 			await chat.purgeSession(s.id);
@@ -175,26 +175,26 @@
 	inert={drawer && !open}
 	role={modal ? 'dialog' : undefined}
 	aria-modal={modal ? 'true' : undefined}
-	aria-label={modal ? 'Discussions' : undefined}
+	aria-label={modal ? 'Chats' : undefined}
 	tabindex="-1"
 >
 	{#if collapsed}
 		<div class="rail">
-			<button class="rail-btn" onclick={ontoggleCollapse} aria-label="Déplier les discussions">
+			<button class="rail-btn" onclick={ontoggleCollapse} aria-label="Expand chats">
 				<Icon name="chevronRight" size={19} />
 			</button>
 			<button
 				class="rail-btn accent"
 				onclick={() => chat.newSession()}
-				aria-label="Nouvelle discussion"
+				aria-label="New chat"
 			>
 				<Icon name="plus" size={19} />
 			</button>
 			<div class="rail-spacer"></div>
-			<button class="rail-btn" onclick={onopenSettings} aria-label="Réglages">
+			<button class="rail-btn" onclick={onopenSettings} aria-label="Settings">
 				<Icon name="settings" size={19} />
 			</button>
-			<button class="rail-btn" onclick={onopenStatus} aria-label="État du système">
+			<button class="rail-btn" onclick={onopenStatus} aria-label="System status">
 				<span class="dot" class:ok={chat.connected === true} class:ko={chat.connected === false}
 				></span>
 			</button>
@@ -202,12 +202,12 @@
 	{:else}
 		<div class="top">
 			<button class="new" onclick={async () => { await chat.newSession(); onclose(); }}>
-				<Icon name="plus" size={17} /> Nouvelle discussion
+				<Icon name="plus" size={17} /> New chat
 			</button>
-			<button class="icon-btn collapse" onclick={ontoggleCollapse} aria-label="Replier">
+			<button class="icon-btn collapse" onclick={ontoggleCollapse} aria-label="Collapse">
 				<Icon name="chevronLeft" />
 			</button>
-			<button class="icon-btn close" onclick={onclose} aria-label="Fermer le menu">
+			<button class="icon-btn close" onclick={onclose} aria-label="Close menu">
 				<Icon name="close" />
 			</button>
 		</div>
@@ -215,9 +215,9 @@
 		<input
 			class="search"
 			bind:value={filter}
-			placeholder="Rechercher…"
+			placeholder="Search…"
 			type="search"
-			aria-label="Rechercher une discussion"
+			aria-label="Search chats"
 		/>
 
 		<nav class="list">
@@ -275,10 +275,10 @@
 							</div>
 							<div class="bin-acts">
 								<button class="bin-act" onclick={() => chat.restoreSession(entry.id)}>
-									<Icon name="restore" size={14} /> Restaurer
+									<Icon name="restore" size={14} /> Restore
 								</button>
 								<button class="bin-act danger" onclick={() => confirmPurge(entry)}>
-									Supprimer définitivement
+									Delete forever
 								</button>
 							</div>
 						{:else}
@@ -287,7 +287,7 @@
 							<button
 								class="entry"
 								onclick={() => pick(entry.id)}
-								title={draft ? `Brouillon : ${draft}` : (entry.preview ?? '')}
+								title={draft ? `Draft: ${draft}` : (entry.preview ?? '')}
 							>
 								<!-- The round thumbnail every row of this design opens with.
 								     A conversation has no picture, so it wears its agent's
@@ -300,7 +300,7 @@
 								>
 								<span class="txt">
 									<span class="title">
-										{#if entry.parent_session_id}<span class="branch" title="branche"
+										{#if entry.parent_session_id}<span class="branch" title="branch"
 												><Icon name="branch" size={13} /></span
 											>{/if}
 										{sessionLabel(entry)}
@@ -314,14 +314,14 @@
 										     any other conversation; this is the only thing that
 										     says so. -->
 										{#if draft}<span class="draft"
-												>· <Icon name="pencil" size={12} /> brouillon</span
+												>· <Icon name="pencil" size={12} /> draft</span
 											>{/if}
 									</span>
 								</span>
 							</button>
 							<button
 								class="more"
-								aria-label="Actions sur « {sessionLabel(entry)} »"
+								aria-label="Actions for “{sessionLabel(entry)}”"
 								aria-haspopup="true"
 								aria-expanded={menuFor === entry.id}
 								onclick={(e) => {
@@ -338,17 +338,17 @@
 
 						{#if menuFor === entry.id}
 							<div class="menu">
-								<button onclick={() => startRename(entry)}>Renommer</button>
+								<button onclick={() => startRename(entry)}>Rename</button>
 								<button onclick={() => { chat.togglePin(entry.id); closeMenu(true); }}>
-									{entry.pinned ? 'Désépingler' : 'Épingler'}
+									{entry.pinned ? 'Unpin' : 'Pin'}
 								</button>
 								<button onclick={() => { chat.forkSession(entry.id); closeMenu(); onclose(); }}>
-									Brancher
+									Branch
 								</button>
 								<button onclick={() => { chat.toggleArchive(entry.id); closeMenu(true); }}>
-									{entry.archived ? 'Désarchiver' : 'Archiver'}
+									{entry.archived ? 'Unarchive' : 'Archive'}
 								</button>
-								<button class="danger" onclick={() => deleteToBin(entry)}>Supprimer</button>
+								<button class="danger" onclick={() => deleteToBin(entry)}>Delete</button>
 							</div>
 						{/if}
 					</div>
@@ -358,31 +358,31 @@
 			{#if visible.length === 0}
 				<p class="empty">
 					{#if showArchived && chat.loadingArchived}
-						Recherche des conversations archivées…
+						Looking for archived conversations…
 					{:else if showTrash && chat.loadingTrash}
-						Ouverture de la corbeille…
+						Opening the trash…
 					{:else if view === 'live' && chat.loadingSessions}
-						Chargement…
+						Loading…
 					{:else if filter}
-						Aucun résultat pour « {filter} ».
+						No results for “{filter}”.
 					{:else if showArchived}
-						Aucune conversation archivée.
+						No archived conversations.
 					{:else if showTrash}
-						La corbeille est vide.
+						The trash is empty.
 					{:else}
-						Aucune discussion pour l'instant.
+						No chats yet.
 					{/if}
 				</p>
 			{:else if showArchived && chat.archivedTruncated}
 				<p class="empty">
-					Seules les conversations archivées les plus récentes sont listées : Yadai ne sait pas
-					les énumérer, elles sont retrouvées une par une.
+					Only the most recent archived conversations are listed: Yadai cannot enumerate them,
+					so they are found one by one.
 				</p>
 			{:else if showTrash}
 				<p class="empty">
-					Une conversation supprimée est gardée {TRASH_DAYS} jours avant d'être effacée pour de
-					bon. Rien n'a encore été supprimé chez Yadai : la restaurer la remet exactement où
-					elle était.
+					A deleted conversation is kept for {TRASH_DAYS} days before it is erased for good.
+					Nothing has been deleted in Yadai yet: restoring it puts it back exactly where it
+					was.
 				</p>
 			{/if}
 		</nav>
@@ -393,22 +393,22 @@
 				     one door now; what is behind it is grouped and named in
 				     SettingsPanel.svelte. -->
 				<button class="settings-btn" onclick={onopenSettings}>
-					<Icon name="settings" /> Réglages
+					<Icon name="settings" /> Settings
 				</button>
 			{:else}
 				<button class="settings-btn" onclick={() => showList('live')}>
-					<Icon name="chevronLeft" /> Discussions
+					<Icon name="chevronLeft" /> Chats
 				</button>
 			{/if}
-			<button class="status" onclick={onopenStatus} title="État du système">
+			<button class="status" onclick={onopenStatus} title="System status">
 				<span class="dot" class:ok={chat.connected === true} class:ko={chat.connected === false}
 				></span>
 				{#if chat.connected === true}
 					Yadai {chat.version}
 				{:else if chat.connected === false}
-					Hors ligne
+					Offline
 				{:else}
-					connexion…
+					connecting…
 				{/if}
 			</button>
 		</footer>

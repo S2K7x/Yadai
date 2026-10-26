@@ -71,10 +71,10 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<Modal {open} title="Consommation" width={580} {onclose}>
-	{#snippet subtitle()}Ce que l'agent a consommé, toutes surfaces confondues{/snippet}
+<Modal {open} title="Usage" width={580} {onclose}>
+	{#snippet subtitle()}What the agent used, across every surface{/snippet}
 	<div class="body">
-		<div class="periods" role="group" aria-label="Période">
+		<div class="periods" role="group" aria-label="Period">
 			{#each USAGE_PERIODS as period (period)}
 				<button
 					class="period"
@@ -89,7 +89,7 @@
 				class="reload"
 				disabled={usage.loading}
 				onclick={() => usage.refresh()}
-				aria-label="Actualiser"
+				aria-label="Refresh"
 			>
 				<Icon name="restore" size={15} />
 			</button>
@@ -97,19 +97,19 @@
 
 		{#if usage.state === 'failed'}
 			<p class="fail">{usage.loadError}</p>
-			<button class="retry" onclick={() => usage.load()}>Réessayer</button>
+			<button class="retry" onclick={() => usage.load()}>Retry</button>
 			<p class="lead">
-				Ce chiffre vient du dashboard de Hermes. Un échec de lecture ne dit rien de sa
-				configuration : il est peut-être simplement redémarré.
+				These figures come from the Hermes dashboard. A failed read says nothing about its
+				configuration: it may simply have restarted.
 			</p>
 		{:else if usage.state === 'disabled'}
 			<p class="fail">{usage.message}</p>
 		{:else if usage.state === 'unread'}
-			<p class="lead">Lecture…</p>
+			<p class="lead">Reading…</p>
 		{:else if !measured}
 			<p class="lead">
-				Rien de mesuré sur les {periodLabel(usage.period)}. Hermes ne compte une session
-				qu'une fois un appel au modèle effectué.
+				Nothing measured over the last {periodLabel(usage.period)}. Hermes only counts a session
+				once a model call has been made.
 			</p>
 		{:else if report}
 			<div class="tiles">
@@ -125,7 +125,7 @@
 				<p class="lead">{note}</p>
 			{/if}
 
-			<h3>Par jour</h3>
+			<h3>By day</h3>
 			<div class="chart" aria-hidden="true">
 				{#each bars as bar (bar.day)}
 					<div class="col" title="{bar.label} — {formatTokens(bar.tokens)} tokens">
@@ -143,16 +143,16 @@
 			</div>
 			<!-- The chart is decorative; this is the same data, read out. -->
 			<p class="sr-only">
-				{bars.length} journées, du {bars[0]?.label} au {bars[bars.length - 1]?.label}.
+				{bars.length} days, from {bars[0]?.label} to {bars[bars.length - 1]?.label}.
 				{#each bars.filter((b) => b.tokens > 0) as bar (bar.day)}
-					{bar.label} : {formatTokens(bar.tokens)} tokens.
+					{bar.label}: {formatTokens(bar.tokens)} tokens.
 				{/each}
 			</p>
 			<p class="lead small">
-				Hermes découpe ces journées en <strong>UTC</strong>, pas à votre heure locale.
+				Hermes cuts these days in <strong>UTC</strong>, not your local time.
 			</p>
 
-			<h3>Par modèle</h3>
+			<h3>By model</h3>
 			<ul class="rows">
 				{#each models as row (row.item.model)}
 					<li>
@@ -166,12 +166,12 @@
 						{/if}
 					</li>
 				{:else}
-					<li class="none">Aucun modèle sur cette période.</li>
+					<li class="none">No model in this period.</li>
 				{/each}
 			</ul>
 
 			{#if tools.length > 0}
-				<h3>Outils les plus appelés</h3>
+				<h3>Most-used tools</h3>
 				<ul class="rows">
 					{#each tools as row (row.item.tool)}
 						<li>
@@ -188,7 +188,7 @@
 			{/if}
 
 			{#if report.skills.length > 0}
-				<h3>Skills chargés</h3>
+				<h3>Skills loaded</h3>
 				<ul class="chips">
 					{#each report.skills as skill (skill.skill)}
 						<li>{skill.skill} <span class="muted">{formatCount(skill.count)}</span></li>
@@ -197,9 +197,9 @@
 			{/if}
 
 			<p class="lead foot">
-				Ces chiffres couvrent <strong>tout</strong> ce que l'agent a fait : cette interface, le
-				CLI, Telegram et les tâches planifiées. Une « session » est une session Hermes — une
-				conversation compressée en occupe plusieurs.
+				These figures cover <strong>everything</strong> the agent did: this interface, the
+				CLI, Telegram and scheduled tasks. A "session" is a Hermes session — a
+				compressed conversation takes up several.
 			</p>
 		{/if}
 	</div>
