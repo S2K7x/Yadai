@@ -1238,6 +1238,44 @@ second Échap, menu fermé, l'atteint bien (1). Idem sur le menu d'une ligne :
 tiroir. En 414 × 896 : ⋯ à 44 × 44, les cinq actions à 44 px, les entrées du
 sélecteur de modèle à 44 px.
 
+**Et les deux puces de l'entête ne tiennent plus qu'un seul cadre.** Le
+contrat clavier ci-dessus vivait dans un helper, mais le *cadre* autour — la
+puce, le voile, le panneau ancré sous elle, la feuille du bas sous 820 px —
+était recopié dans `ModelPicker.svelte` et `AgentPicker.svelte` : le drapeau
+`open`, les deux références d'élément, `close(refocus)`, l'appel à
+`menuKeydown`, le `currentTarget.focus()` de Safari, les deux attributs ARIA,
+et une soixantaine de lignes de CSS identiques. C'est la même histoire qu'au
+point 21, avec les mêmes dérives déjà en place : la liste d'agents n'avait
+jamais reçu le `flex: none` qui empêche une ligne sur deux niveaux d'être
+rognée par le plancher tactile de 44 px — alors que ses lignes en font deux
+elles aussi.
+
+`MenuChip.svelte` est donc à ces deux puces ce que `Modal.svelte` est aux
+panneaux : il porte le cadre, rien de plus. Ce qui reste au sélecteur, et
+pourquoi :
+
+- **Le contenu**, par deux snippets. `chip` dessine ce que la puce affiche (le
+  nom du modèle et sa pastille d'effort, la bille de couleur et le nom de
+  l'agent) ; `menu` dessine le panneau et **reçoit le `close` en paramètre**,
+  parce que choisir une ligne est ce qui referme et que seul le sélecteur sait
+  quelle ligne c'est. `close(true)` rend le focus à la puce, `close()` le
+  laisse où il est — pour « Gérer l'équipe… », qui ouvre autre chose.
+- **Le style de ses lignes.** Un sélecteur écrit dans `MenuChip.svelte` ne
+  porte que sur les éléments écrits dans `MenuChip.svelte` : les lignes, leurs
+  deux niveaux et leur plancher de 44 px se stylent donc chez l'appelant,
+  exactement comme le contenu d'un snippet de `Modal`.
+- Les seuls réglages exposés sont `width` (le panneau, qui se rétrécit seul sur
+  un écran étroit), `triggerWidth` (la puce, qui ellipsise ce qu'elle ne peut
+  pas afficher), `label` et `title`.
+
+`tests/a11y.test.ts` échoue si l'un des deux reprend le cadre (`class="trigger"`,
+`class="scrim"`, une règle `.menu`) ou cesse de passer par `<MenuChip>`, et
+vérifie le contrat clavier une fois, sur le cadre. Le CSS du chunk critique
+passe de 34 119 à 32 962 octets. **Non vérifié** : le rendu dans un vrai
+navigateur — aucun n'était installé dans le clone où ce changement a été
+écrit ; ce qui est mesuré, c'est le CSS produit par la compilation (chaque
+règle des deux sélecteurs est toujours là, aucun sélecteur signalé inutilisé).
+
 **Le composeur en tenait deux de plus, et ce balayage-là les avait manquées.**
 La bibliothèque de prompts (le signet) et la palette de skills (taper `/`) sont
 des panneaux flottants ouverts depuis le composeur : mêmes obligations, et les
@@ -2506,7 +2544,8 @@ src/
 │   │   ├── frame.ts        une mesure de géométrie par image, pas par frappe
 │   │   └── lazy.svelte.ts  composant récupéré à la première utilisation
 │   ├── components/    Sidebar, Message, ToolSteps, Composer, ModelPicker,
-│   │                  AgentPicker, Markdown, CommandPalette, Icon, Modal (cadre
+│   │                  AgentPicker, MenuChip (cadre commun des deux puces de
+│   │                  l'entête), Markdown, CommandPalette, Icon, Modal (cadre
 │   │                  commun des panneaux), StatusPanel, SkillsPanel,
 │   │                  ProvidersPanel, JobsPanel, AgentsPanel, SettingsPanel, PushSettings,
 │   │                  ThemePanel, UsagePanel, Shortcuts, Toasts

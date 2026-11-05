@@ -366,12 +366,9 @@ test('the shared popup helper swallows Escape', () => {
 
 test('every popup routes its keys through that helper and gives the focus back', () => {
 	const dir = new URL('../src/lib/components/', import.meta.url);
-	for (const name of [
-		'ModelPicker.svelte',
-		'AgentPicker.svelte',
-		'Sidebar.svelte',
-		'Composer.svelte'
-	]) {
+	// The two header chips get the contract from `MenuChip.svelte`, the frame
+	// they share; the other two own their own popup and so must carry it.
+	for (const name of ['MenuChip.svelte', 'Sidebar.svelte', 'Composer.svelte']) {
 		const source = readFileSync(new URL(name, dir), 'utf8');
 		assert.match(source, /import \{ menuKeydown \} from '\$lib\/client\/menu\.svelte'/, name);
 		assert.match(source, /menuKeydown\([\s\S]{0,40}\) === 'close'/, name);
@@ -380,6 +377,35 @@ test('every popup routes its keys through that helper and gives the focus back',
 		assert.match(source, /aria-expanded=/, name);
 		assert.match(source, /refocus[\s\S]{0,80}\.focus\(\)/, name);
 	}
+});
+
+/**
+ * The chip frame lives in ONE place, for the same reason the modal shell does
+ * (point 21). The model picker and the agent picker each carried their own
+ * copy of the trigger, the scrim, the anchored panel and the phone bottom
+ * sheet — and the copies had already drifted: the agent panel never got the
+ * `flex: none` that keeps a two-line row from being clipped by the 44px touch
+ * floor, though its rows are two lines too.
+ */
+test('the two header pickers go through MenuChip', () => {
+	const dir = new URL('../src/lib/components/', import.meta.url);
+	for (const name of ['ModelPicker.svelte', 'AgentPicker.svelte']) {
+		const source = readFileSync(new URL(name, dir), 'utf8');
+		assert.match(source, /import MenuChip from '\.\/MenuChip\.svelte'/, name);
+		assert.match(source, /<MenuChip\b/, name);
+		// A second copy of the frame is the tell: nothing but the frame owns
+		// the trigger button, the scrim or the floating panel.
+		assert.doesNotMatch(source, /class="trigger"/, `${name} must let MenuChip own the trigger`);
+		assert.doesNotMatch(source, /class="scrim"/, `${name} must let MenuChip own the scrim`);
+		assert.doesNotMatch(source, /\.menu\s*\{/, `${name} must let MenuChip own the panel`);
+		// Choosing a row closes the panel, and the closer comes from the frame.
+		assert.match(source, /\{#snippet menu\(close\)\}/, name);
+		assert.match(source, /close\(true\)/, name);
+	}
+
+	const frame = readFileSync(new URL('MenuChip.svelte', dir), 'utf8');
+	assert.match(frame, /\.menu\s*\{[\s\S]{0,200}position:\s*absolute/, 'MenuChip owns the dropdown');
+	assert.match(frame, /@media \(max-width: 820px\)/, 'MenuChip owns the phone sheet');
 });
 
 /**
@@ -624,11 +650,10 @@ test('every round control is thumb-sized on a phone', () => {
 	assert.match(phone, /\.attach,\s*\n\s*\.send \{[^}]*width:\s*44px/);
 	assert.match(phone, /\.attach,\s*\n\s*\.send \{[^}]*height:\s*44px/);
 
-	for (const name of ['ModelPicker.svelte', 'AgentPicker.svelte']) {
-		const source = readFileSync(new URL(name, dir), 'utf8');
-		const block = source.slice(source.indexOf('@media (max-width: 820px)'));
-		assert.match(block, /\.trigger \{[^}]*min-height:\s*44px/, name);
-	}
+	// Both header chips are the same chip: the floor is set once, in the frame.
+	const chip = readFileSync(new URL('MenuChip.svelte', dir), 'utf8');
+	const chipPhone = chip.slice(chip.indexOf('@media (max-width: 820px)'));
+	assert.match(chipPhone, /\.trigger \{[^}]*min-height:\s*44px/);
 
 	const message = readFileSync(new URL('Message.svelte', dir), 'utf8');
 	const acts = message.slice(message.indexOf('@media (max-width: 820px)'));
