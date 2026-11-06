@@ -15,6 +15,7 @@
 	import { toasts } from '$lib/stores/toast.svelte';
 	import { read, readJSON, write, writeJSON } from '$lib/client/storage';
 	import { hasMod, modKey } from '$lib/client/platform';
+	import { scrollBehavior } from '$lib/client/motion';
 	import { usageSummary } from '$lib/sessions';
 	import { agentColor, directReports } from '$lib/agents';
 	import { turnAnnouncement } from '$lib/a11y';
@@ -203,13 +204,13 @@
 		await tick();
 		for (const node of scroller?.querySelectorAll('[data-mid]') ?? []) {
 			if (node.getAttribute('data-mid') !== id) continue;
-			node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+			node.scrollIntoView({ block: 'center', behavior: scrollBehavior() });
 			return;
 		}
 	}
 
 	function scrollToBottom() {
-		scroller?.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
+		scroller?.scrollTo({ top: scroller.scrollHeight, behavior: scrollBehavior() });
 		pinnedToBottom = true;
 	}
 

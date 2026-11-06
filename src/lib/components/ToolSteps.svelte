@@ -126,6 +126,15 @@
 			opacity: 1;
 		}
 	}
+	/* The dot only exists while a step is running, so a steady one says the
+	   same thing the pulse did — see the note in app.css on why an animation
+	   cannot be cut from there. */
+	@media (prefers-reduced-motion: reduce) {
+		.pulse {
+			animation: none;
+			opacity: 1;
+		}
+	}
 	.body {
 		padding: 2px 14px 12px;
 		display: flex;

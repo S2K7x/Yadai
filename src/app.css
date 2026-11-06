@@ -145,6 +145,36 @@ button {
 	outline-offset: 2px;
 }
 
+/* --- reduced motion ------------------------------------------------------
+   "Reduce Motion" is a system setting someone flips once, and it covers
+   everything that merely travels: the drawer sliding over the thread, the
+   sidebar collapsing, a chevron turning, the send disc lifting under the
+   pointer.
+
+   Transitions are cut here, once, for all of them — and only transitions. A
+   transition's end state *is* the state the app wanted, so removing its
+   duration is always correct. An animation's is not: the three looping
+   indicators of a turn (the caret in `Message.svelte`, the running dot in
+   `ToolSteps.svelte`, the waiting dots) end on an invisible keyframe, and
+   killing them from here would silently take away the only sign that Hermes
+   is working. Each one therefore declares its own still form where it is
+   written, next to the animation it replaces.
+
+   `scroll-behavior` is the CSS half of `scrollMotion()` in src/lib/motion.ts;
+   the scripted scrolls of `+page.svelte` pass the behaviour explicitly, which
+   overrides this property and so has to ask for itself. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		transition-duration: 0.01ms !important;
+		transition-delay: 0ms !important;
+	}
+	html {
+		scroll-behavior: auto;
+	}
+}
+
 /* Text meant for a screen reader and nobody else: the speaker of each message
    and the turn's live region. `display: none` or `visibility: hidden` would
    take it out of the accessibility tree too, which is the opposite of the

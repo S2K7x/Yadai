@@ -209,11 +209,25 @@
 			box-shadow: var(--shadow-card), 0 0 0 2px transparent;
 		}
 	}
+	/* Reduced motion: the ring is simply held still for its two and a half
+	   seconds, and the two live indicators of a turn stay on screen without
+	   moving. Neither may be dropped — the caret is what says text is still
+	   arriving between two debounced parses, and the dots are what says
+	   anything at all is happening before the first token. Taking the motion
+	   away must not take the information away with it. */
 	@media (prefers-reduced-motion: reduce) {
 		.msg.flash .bubble,
 		.msg.flash .reply {
 			animation-duration: 0.01s;
 			box-shadow: var(--shadow-card), 0 0 0 2px var(--focus);
+		}
+		.body.typing :global(> .md > :last-child::after) {
+			animation: none;
+			opacity: 1;
+		}
+		.thinking span {
+			animation: none;
+			opacity: 1;
 		}
 	}
 

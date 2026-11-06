@@ -3,15 +3,16 @@
 	import { toasts } from '$lib/stores/toast.svelte';
 	import { flip } from 'svelte/animate';
 	import { fly } from 'svelte/transition';
+	import { moveMs } from '$lib/client/motion';
 </script>
 
 <div class="stack" role="status" aria-live="polite">
 	{#each toasts.items as toast (toast.id)}
 		<div
 			class="toast {toast.kind}"
-			animate:flip={{ duration: 180 }}
-			in:fly={{ y: 12, duration: 160 }}
-			out:fly={{ y: 8, duration: 120 }}
+			animate:flip={{ duration: moveMs(180) }}
+			in:fly={{ y: 12, duration: moveMs(160) }}
+			out:fly={{ y: 8, duration: moveMs(120) }}
 		>
 			<span class="icon">
 				<Icon name={toast.kind === 'error' ? 'warning' : toast.kind === 'success' ? 'check' : 'info'} />

@@ -146,6 +146,10 @@ never the app.
   closes it and gives focus back to the button that opened it — and every
   control carries a visible focus ring, derived from the chosen accent and kept
   at 3:1 on every background
+- **Reduce Motion is obeyed**: with the system setting on, nothing travels —
+  the drawer appears instead of sliding, toasts appear instead of flying, and
+  a jump to a found passage lands instead of scrolling the thread past you.
+  The three looping signs that a turn is running stay on screen, held still
 - **Detaching** a running turn (see the limitation below)
 
 ### Robustness

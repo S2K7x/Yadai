@@ -2431,6 +2431,60 @@ ne bloque pas la suite), relit le composeur (un `queueMicrotask(autosize)`
 remis remettrait une mise en page forcée par frappe) **et relit la page** pour
 que le défilement du fil reste sur son microtask.
 
+### 38. « Réduire les animations » est un réglage du système, pas une option de l'app
+
+iOS l'appelle *Réduire les animations*, et c'est l'interrupteur que quelqu'un
+sensible au mouvement actionne **une fois** en attendant que chaque app
+l'honore. Cette app ne l'honorait qu'à deux endroits sur sept : le bouton
+d'envoi (`Composer.svelte`) et le halo d'un passage retrouvé
+(`Message.svelte`). Restaient le tiroir qui traverse l'écran, la colonne qui se
+replie, le chevron qui pivote, la pile de toasts qui monte, les **deux
+défilements lisses** — et les trois animations **infinies** d'un tour, qui
+tournent aussi longtemps que l'agent travaille, c'est-à-dire des minutes.
+
+La politique tient en une phrase : **ce qui ne fait que voyager s'arrête, ce
+qui informe reste.** Elle se répartit en trois moitiés, parce qu'aucun
+mécanisme ne couvre les trois.
+
+- **Les transitions sont coupées une fois, globalement**, dans `src/app.css`.
+  C'est sûr *parce que* l'état final d'une transition **est** l'état que l'app
+  voulait : le tiroir arrive ouvert, le chevron finit tourné, la colonne finit
+  repliée. Une règle `*` qui ne touche que `transition-duration` et
+  `transition-delay` est donc correcte partout — et c'est l'inverse qui avait
+  laissé cinq sites de côté, chacun attendant qu'on pense à lui.
+- **Les animations, non.** Une `animation-duration` ramenée à zéro laisse
+  l'élément sur sa **dernière** image-clé, et les trois indicateurs d'un tour
+  y sont invisibles ou presque : le curseur de frappe finit à `opacity: 0`
+  (0 % → 50 % visible, 51 % → 100 % transparent), la pastille d'un outil en
+  cours à 0,25. Les couper depuis `app.css` aurait donc retiré, sans un mot,
+  **le seul signe visible** que Hermes écrit — alors que le curseur est
+  précisément ce qui le dit entre deux parses débouncés (point 9). Chacune des
+  trois déclare donc sa **forme immobile** là où elle est écrite : curseur
+  plein, pastille pleine, trois points posés. `tests/motion.test.ts` échoue si
+  une quatrième animation infinie apparaît sans sa réponse, et si l'une des
+  trois cesse d'être visible une fois arrêtée.
+- **Le script, enfin, doit demander.** Une transition Svelte (`fly`, `flip` de
+  la pile de toasts) est une animation injectée par le JavaScript : aucune
+  feuille de style ne l'atteint. Et `scrollTo({behavior: 'smooth'})` écrase le
+  `scroll-behavior` du CSS par construction. `src/lib/motion.ts` (pur, testé)
+  tient donc `motionMs()` et `scrollMotion()`, et
+  `src/lib/client/motion.ts` lit la requête média — même partage que
+  `trapIndex()` / `trapTab()` au point 22. La lecture se fait **au moment où
+  elle compte** plutôt que mise en cache : le réglage peut être activé en cours
+  de session, et un `MediaQueryList` répond juste sans écouteur à tenir à jour.
+
+Le défilement lisse est le seul mouvement de l'app qui déplace **tout le fil**
+sous le lecteur : sauter à un passage que la palette a trouvé peut faire
+glisser plusieurs écrans de texte. C'est exactement le cas que ce réglage
+existe pour éteindre, et il atterrit maintenant dessus.
+
+**Non vérifié** : le rendu réel avec le réglage activé. Aucun navigateur
+n'était installé dans le clone où ce changement a été écrit — ce qui est
+mesuré, c'est le CSS produit par la compilation (les trois formes immobiles y
+sont, chacune à la même spécificité que l'animation qu'elle remplace) et les
+fonctions pures. Rien ne change pour qui n'a pas activé le réglage : la
+requête média ne s'applique pas, et `reducedMotion()` rend `false`.
+
 ## Événements SSE de `/api/sessions/{id}/chat/stream`
 
 | Événement | Charge utile utile | Traitement UI |
@@ -2542,6 +2596,8 @@ src/
 │   │   ├── dialog.svelte.ts  focus d'un dialogue : entrée, piège de Tab, retour
 │   │   ├── menu.svelte.ts    clavier d'un menu surgissant : Échap, flèches
 │   │   ├── frame.ts        une mesure de géométrie par image, pas par frappe
+│   │   ├── motion.ts       la requête média « réduire les animations », lue au
+│   │   │                  moment où un script en a besoin
 │   │   └── lazy.svelte.ts  composant récupéré à la première utilisation
 │   ├── components/    Sidebar, Message, ToolSteps, Composer, ModelPicker,
 │   │                  AgentPicker, MenuChip (cadre commun des deux puces de
@@ -2574,6 +2630,8 @@ src/
 │   ├── icons.ts       le jeu d'icônes : tracés 24×24, sans dépendance
 │   ├── trash.ts       corbeille : compte à rebours, échéance, lignes à balayer
 │   ├── json.ts        décodage d'un corps de réponse qui n'est peut-être pas du JSON
+│   ├── motion.ts      ce qu'une animation et un défilement pilotés par script
+│   │                  doivent valoir quand on demande moins de mouvement
 │   ├── agents.ts      agents : bornes, cycles, arbre d'équipe, prompt composé
 │   ├── approvals.ts   tour retombé faute d'approbation, + politique d'approbation
 │   ├── errors.ts      ApiError + codes + `humanizeError`
