@@ -19,6 +19,7 @@
 	import { usageSummary } from '$lib/sessions';
 	import { agentColor, directReports } from '$lib/agents';
 	import { turnAnnouncement } from '$lib/a11y';
+	import { TRANSCRIPT_PAGE } from '$lib/transcript';
 	import { lazyComponent } from '$lib/client/lazy.svelte';
 
 	let sidebarOpen = $state(false);
@@ -212,6 +213,23 @@
 	function scrollToBottom() {
 		scroller?.scrollTo({ top: scroller.scrollHeight, behavior: scrollBehavior() });
 		pinnedToBottom = true;
+	}
+
+	/**
+	 * Pull in the page of transcript above, keeping the reader where they are.
+	 *
+	 * Prepending content moves everything down by however tall it is, so the
+	 * passage being read would slide out of view. The distance to the *bottom*
+	 * is what does not change, so it is what gets restored — one forced layout
+	 * read per click, which is a different budget from the per-keystroke ones
+	 * CLAUDE.md §37 is about.
+	 */
+	async function loadOlder() {
+		const anchor = scroller ? scroller.scrollHeight - scroller.scrollTop : 0;
+		pinnedToBottom = false;
+		await chat.loadOlderMessages();
+		await tick();
+		if (scroller) scroller.scrollTop = scroller.scrollHeight - anchor;
 	}
 
 	/** Two modals must never stack: the status panel steps aside. */
@@ -509,6 +527,21 @@
 					</div>
 				{/if}
 
+				{#if chat.olderMessages}
+					<!-- A conversation longer than one page of transcript. The thread
+					     holds its end, which is the part a chat is about; this walks
+					     back from there. See $lib/transcript. -->
+					<div class="earlier">
+						<button onclick={loadOlder} disabled={chat.loadingOlder}>
+							{chat.loadingOlder ? 'Loading…' : 'Load earlier messages'}
+						</button>
+						<p>
+							Only the last {TRANSCRIPT_PAGE} messages are loaded — the most the API
+							returns at once.
+						</p>
+					</div>
+				{/if}
+
 				{#each chat.messages as message (message.id)}
 					<Message
 						{message}
@@ -764,6 +797,40 @@
 		text-align: center;
 		color: var(--text-faint);
 		font-size: 13px;
+	}
+	/* The head of a conversation too long to show whole. A raised pill on the
+	   sunken thread, like every other surface here — no rule, no border. */
+	.earlier {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		margin: 0 0 14px;
+		text-align: center;
+	}
+	.earlier button {
+		padding: 7px 15px;
+		font-size: 12.5px;
+		color: var(--text-muted);
+		background: var(--bg-raised);
+		border-radius: var(--radius-pill);
+		box-shadow: var(--shadow-card);
+	}
+	.earlier button:hover:not(:disabled) {
+		color: var(--text);
+	}
+	.earlier button:disabled {
+		opacity: 0.6;
+	}
+	.earlier p {
+		margin: 0;
+		font-size: 11.5px;
+		color: var(--text-faint);
+	}
+	@media (max-width: 820px) {
+		.earlier button {
+			min-height: 44px;
+		}
 	}
 	.welcome {
 		padding: 4vh 0 0;

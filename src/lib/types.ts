@@ -86,7 +86,15 @@ export interface HermesToolCall {
 export interface HermesMessage {
 	id?: number | string;
 	session_id?: string;
-	role: 'user' | 'assistant' | 'tool' | 'system';
+	/**
+	 * The three roles that make up a conversation, plus the bookkeeping rows
+	 * the same table holds: `system`, and `session_meta`, which records the
+	 * runtime of a stretch of conversation and carries a JSON object where a
+	 * message carries text. The column is free text upstream, so this union
+	 * names what Hermes is known to write rather than what it cannot —
+	 * `groupTranscript()` filters by the three it folds, not by exclusion.
+	 */
+	role: 'user' | 'assistant' | 'tool' | 'system' | 'session_meta' | (string & {});
 	/**
 	 * A plain string on most rows, and the multimodal list on a row the user
 	 * attached an image to — `_message_response` hands back the column as

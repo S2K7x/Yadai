@@ -1724,9 +1724,10 @@ Le gateway n'a **aucune** route de recherche dans les messages : sa table de
 routage (`api_server.py`, 0.20.0) n'expose sur les sessions que la liste, la
 fiche, le transcript, le fork, le chat et le verrou de modèle — vérifié aussi
 par l'absence totale d'un handler de recherche dans le fichier. Mais il n'en
-faut pas : `openSession()` charge déjà tout le
-transcript (`?order=oldest&limit=500`), donc « où est-ce qu'il m'a donné cette
-commande ? » se répond dans le navigateur, sans un aller-retour.
+faut pas : `openSession()` charge déjà une page entière de
+transcript (`?order=latest&limit=500`, voir le point 39), donc « où est-ce
+qu'il m'a donné cette commande ? » se répond dans le navigateur, sans un
+aller-retour.
 
 Et c'est sur téléphone que ça compte : une PWA installée n'a pas de
 « rechercher dans la page ». Sur desktop le Ctrl+F du navigateur trouve le
@@ -2485,6 +2486,90 @@ sont, chacune à la même spécificité que l'animation qu'elle remplace) et les
 fonctions pures. Rien ne change pour qui n'a pas activé le réglage : la
 requête média ne s'applique pas, et `reducedMotion()` rend `false`.
 
+### 39. Un transcript ne revient pas en entier, et c'est la **fin** qui compte
+
+`GET /api/sessions/{id}/messages` ne peut pas rendre une conversation longue
+d'un coup, et le plafond n'est pas le nôtre : `_handle_session_messages`
+calcule `limit = 500 if default_page else min(requested_limit, 500)`
+(`api_server.py`, 0.20.0). Demander 5 000 lignes en rend 500.
+
+Reste donc à choisir **lequel** des deux bouts. L'UI demandait
+`?order=oldest&limit=500` — le **début**. Vérifié sur une base rejouant la
+requête exacte de `get_messages` (1 200 lignes) : cet appel rend les lignes
+1 à 500, et les 700 dernières — dont la réponse qui vient d'arriver — sont
+inatteignables. Trois conséquences, par ordre de gravité :
+
+- Le bouton « Recharger » d'un tour détaché (points 2 et 16) existe
+  *précisément* pour aller chercher la réponse que l'agent a fini d'écrire.
+  Sur une telle conversation il allait chercher son ouverture.
+- Le message suivant partait quand même au bon endroit : l'écran montrait une
+  vieille conversation sous un composeur qui en continuait une autre.
+- Rien ne le disait.
+
+Amont est d'ailleurs d'accord : **sans `limit` du tout**, sa page par défaut
+est `latest` (`latest_page = order == "latest" or (order is None and
+default_page)`). Notre `order=oldest` explicite se désinscrivait de ce défaut.
+
+`transcriptQuery()` / `hasOlderRows()` (`src/lib/transcript.ts`, purs et
+testés) tiennent les deux moitiés de la règle :
+
+- **La première page est la dernière du fil.** En dessous de 500 lignes — tout
+  ce qui existe sur cette machine aujourd'hui, 41 lignes au maximum — le
+  résultat est identique à celui d'avant, octet pour octet.
+- **`offset` pagine vers le haut.** `get_messages` l'applique à une fenêtre
+  `ORDER BY id DESC` puis renverse le résultat : passer le nombre de lignes
+  déjà tenues demande donc la page juste au-dessus, toujours dans l'ordre
+  chronologique. **Mesuré** sur les mêmes 1 200 lignes : pages 701‑1200,
+  201‑700, 1‑200, bout à bout exactement le transcript entier, ids
+  strictement croissants. Et de bout en bout à travers l'application
+  construite, contre un faux gateway : le proxy passe `order`, `limit` et
+  `offset` intacts et la dernière page revient `returned: 200`, donc le bouton
+  disparaît tout seul.
+- **Une page pleine est le seul signal** qu'il y a peut-être plus haut :
+  `returned` est un compte, pas un total, et une conversation de *exactement*
+  500 lignes rend une page pleine sans rien au-dessus. D'où une phrase qui dit
+  ce qui est chargé — « seuls les 500 derniers messages sont chargés » — plutôt
+  qu'un nombre de messages cachés qu'on ne connaît pas ; un clic qui ne ramène
+  rien fait simplement disparaître le bloc.
+
+Deux choses qui rendent ça sûr, et qu'il ne faut pas défaire :
+
+- **`loadOlderMessages()` replie les lignes accumulées**, il ne replie pas la
+  nouvelle page à part pour la coller devant. La coupure tombe sur un id
+  quelconque, donc la ligne assistante qui porte les `tool_calls` peut être
+  au-dessus pendant que son résultat d'outil est en dessous : deux moitiés
+  repliées séparément affichent ce tour **deux fois**.
+  `tests/transcript.test.ts` compare les deux sorties.
+- **Le pager se retire dès qu'un tour est envoyé** (`olderMessages = false`
+  dans `send()`). À partir de là le fil contient des messages qui ne sont pas
+  dans les lignes chargées, et les replier les jetterait. Rouvrir la
+  conversation le repropose.
+
+Et **la recherche inter-conversations lit la même fenêtre** (point 28) : un
+extrait n'est utile que parce que `jumpToMessage()` sait défiler jusqu'à lui,
+et il ne sait le faire que vers un message que le fil a chargé. Chercher le
+début d'une conversation dont le fil montre la fin rendrait des `data-mid` qui
+n'atteignent jamais le DOM. Les deux bouts se déplacent donc ensemble, et un
+test relit les deux sources pour que `oldest` ne revienne dans ni l'une ni
+l'autre.
+
+**Et seules trois lignes sur quatre sont de la conversation.** La table
+`messages` porte aussi des lignes de service, et `session_meta` en est une
+vivante — il y en a une dans `state.db` de cette machine. Tous les autres
+consommateurs d'un transcript les retirent **par leur nom** avant d'afficher
+ou de rejouer (`cli_agent_setup_mixin`, `cli_commands_mixin`,
+`session_export_html`) ; `groupTranscript()` ne filtrait que `system` et
+laissait le reste tomber dans la branche assistante, où un rôle inconnu
+**ouvre une bulle** et lui prête son id de ligne. Inoffensif jusqu'ici
+uniquement parce que le `content` de ces lignes est un objet JSON, que
+`textOf()` lit comme vide. Le pliage se fait donc maintenant sur les trois
+rôles qu'il sait rendre, pas sur l'absence du seul qu'il connaissait.
+
+**Ce qui n'est délibérément pas fait** : charger la conversation entière à
+l'ouverture. Dix allers-retours et dix mille messages à passer au rendu
+markdown d'un Pi (point 9) pour une page que personne n'a demandée. Le pager
+est un clic, et il ne s'affiche que là où il a quelque chose à offrir.
+
 ## Événements SSE de `/api/sessions/{id}/chat/stream`
 
 | Événement | Charge utile utile | Traitement UI |
@@ -2663,7 +2748,8 @@ src/
 │   ├── turns.ts       résumé d'un tour + « faut-il notifier ? »
 │   ├── markdown.ts    rendu tolérant à l'incomplet, et la part d'un message
 │   │                  en cours qui ne sera plus re-parsée
-│   └── transcript.ts  regroupement du transcript persisté en tours UI
+│   └── transcript.ts  regroupement du transcript persisté en tours UI, et
+│                      quelle page de ce transcript une requête rapporte
 ├── hooks.server.ts    contrôle d'origine à l'exécution + en-têtes de sécurité
 ├── routes/
 │   ├── +page.svelte   l'écran de chat (`?s=<id>` ouvre une conversation)

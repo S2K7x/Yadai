@@ -1,7 +1,7 @@
 import { getSessionMessages, listSessions } from './hermes';
 import { trashedIds } from './db';
 import { activityAt, sessionLabel } from '$lib/sessions';
-import { groupTranscript } from '$lib/transcript';
+import { groupTranscript, TRANSCRIPT_PAGE } from '$lib/transcript';
 import { findInTranscript, type SearchResult, type SessionMatches } from '$lib/search';
 
 /**
@@ -25,8 +25,16 @@ const SEARCH_SESSION_LIMIT = 40;
 const SEARCH_CONCURRENCY = 4;
 /** Hits kept per conversation: a palette row offers somewhere to go, not a report. */
 const HITS_PER_SESSION = 3;
-/** Same window the browser loads for the open thread, so the ids line up. */
-const TRANSCRIPT_LIMIT = 500;
+/**
+ * Same window the browser loads for the open thread, so the ids line up.
+ *
+ * Both halves matter: the size, and the *end* it is taken from. A hit is only
+ * useful because `jumpToMessage()` can scroll to it, and it can only scroll to
+ * a message the thread has loaded — so searching the opening of a conversation
+ * the thread shows the end of would hand back ids that never reach the DOM.
+ */
+const TRANSCRIPT_LIMIT = TRANSCRIPT_PAGE;
+const TRANSCRIPT_ORDER = 'latest' as const;
 
 export async function searchConversations(query: string): Promise<SearchResult> {
 	const live = await listSessions({ limit: 200 });
@@ -45,7 +53,7 @@ export async function searchConversations(query: string): Promise<SearchResult> 
 				let messages;
 				try {
 					messages = await getSessionMessages(session.id, {
-						order: 'oldest',
+						order: TRANSCRIPT_ORDER,
 						limit: TRANSCRIPT_LIMIT
 					});
 				} catch {

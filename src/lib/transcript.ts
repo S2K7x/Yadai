@@ -24,6 +24,70 @@ export interface UiMessage {
 let counter = 0;
 export const uid = (prefix: string) => `${prefix}_${Date.now().toString(36)}_${(counter++).toString(36)}`;
 
+// ---------------------------------------------------------------------------
+// Which part of a transcript a request can bring back
+// ---------------------------------------------------------------------------
+
+/**
+ * Rows one request can return. Upstream's ceiling, not a number we picked:
+ * `_handle_session_messages` computes `limit = 500 if default_page else
+ * min(requested_limit, 500)`, so asking for more returns 500 all the same.
+ */
+export const TRANSCRIPT_PAGE = 500;
+
+/** The `pagination` block `GET /api/sessions/{id}/messages` answers with. */
+export interface TranscriptPagination {
+	limit?: number;
+	offset?: number;
+	order?: string;
+	returned?: number;
+}
+
+/**
+ * One page of a transcript — and it is the *newest* page, deliberately.
+ *
+ * `order` decides which end of the conversation a full page holds, and the two
+ * ends are not interchangeable: `oldest` returns the opening of the
+ * conversation, `latest` its current state. A chat has to show the latter —
+ * it is where the next message goes, where the answer that just arrived is,
+ * and what the "Reload" button of a detached turn exists to fetch. (Upstream
+ * agrees: with no `limit` at all its own default page is `latest`. Our
+ * explicit `order=oldest` was opting out of that.)
+ *
+ * `offset` pages *backwards* from the newest row — `get_messages` applies it
+ * to a `ORDER BY id DESC` window and reverses the result — so passing the
+ * number of rows already held asks for the page just above them, still in
+ * chronological order.
+ */
+export function transcriptQuery(offset = 0): string {
+	const params = new URLSearchParams({ order: 'latest', limit: String(TRANSCRIPT_PAGE) });
+	const back = Math.max(0, Math.floor(offset));
+	if (back > 0) params.set('offset', String(back));
+	return params.toString();
+}
+
+/**
+ * Did that page leave older rows above it?
+ *
+ * A full page is the only signal upstream gives: `returned` is the row count,
+ * and there is no total. So a page that came back exactly full means "ask
+ * again to know" — never "there is more for certain" — which is why the
+ * wording it drives offers to look rather than announcing a number.
+ *
+ * `returned` is read from the response when it is there and counted from the
+ * rows when it is not: this is JSON we did not write.
+ */
+export function hasOlderRows(page: {
+	data?: unknown[] | null;
+	pagination?: TranscriptPagination | null;
+}): boolean {
+	const limit = page.pagination?.limit;
+	const cap = typeof limit === 'number' && limit > 0 ? limit : TRANSCRIPT_PAGE;
+	const returned = page.pagination?.returned;
+	const got = typeof returned === 'number' ? returned : (page.data?.length ?? 0);
+	return got >= cap;
+}
+
 export function emptyAssistant(): UiMessage {
 	return {
 		id: uid('a'),
@@ -79,7 +143,16 @@ export function groupTranscript(messages: HermesMessage[]): UiMessage[] {
 	};
 
 	for (const msg of messages) {
-		if (msg.role === 'system') continue;
+		// Only the three roles that *are* the conversation are folded. The table
+		// also holds bookkeeping rows — `session_meta`, which Hermes writes to
+		// record the runtime of a stretch of conversation — and every other
+		// consumer of a transcript drops them by name before displaying or
+		// replaying one (`cli_agent_setup_mixin`, `cli_commands_mixin`,
+		// `session_export_html`). Here they fell through to the assistant branch
+		// instead, where an unknown role opens a bubble and lends it its row id.
+		// Harmless so far only because their `content` is a JSON object rather
+		// than text, which `textOf()` reads as empty.
+		if (msg.role !== 'user' && msg.role !== 'assistant' && msg.role !== 'tool') continue;
 
 		if (msg.role === 'user') {
 			flush();

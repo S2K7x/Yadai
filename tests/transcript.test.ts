@@ -1,7 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyAssistant, groupTranscript, toolIcon, toolLabel, uid } from '../src/lib/transcript.ts';
+import {
+	emptyAssistant,
+	groupTranscript,
+	hasOlderRows,
+	toolIcon,
+	toolLabel,
+	TRANSCRIPT_PAGE,
+	transcriptQuery,
+	uid
+} from '../src/lib/transcript.ts';
 import type { HermesMessage, HermesToolCall } from '../src/lib/types.ts';
+import { methodBody, source } from './source.ts';
 
 // Shorthand: the transcript rows Hermes actually returns are sparse, so tests
 // build them field by field rather than from a fat fixture.
@@ -305,4 +315,150 @@ test('emptyAssistant is a blank streaming bubble with its own id', () => {
 	assert.deepEqual(a.images, []);
 	assert.equal(a.reasoning, '');
 	assert.equal(a.detached, undefined);
+});
+
+// ---------------------------------------------------------------------------
+// Which page of a transcript a request brings back
+// ---------------------------------------------------------------------------
+
+test('session_meta rows are bookkeeping, not conversation', () => {
+	// Hermes writes one of these to record the runtime of a stretch of
+	// conversation; its content is a JSON object, not text. Every other
+	// consumer drops them by name, and folding one opened a bubble that then
+	// lent its row id to the assistant turn that followed.
+	const out = groupTranscript([
+		m({ id: 1, role: 'user', content: 'salut' }),
+		m({ id: 2, role: 'session_meta', content: null }),
+		m({ id: 3, role: 'assistant', content: 'Bonjour.' })
+	]);
+	assert.equal(out.length, 2);
+	assert.deepEqual(
+		out.map((t) => [t.role, t.id, t.content]),
+		[
+			['user', '1', 'salut'],
+			['assistant', '3', 'Bonjour.']
+		]
+	);
+});
+
+test('a session_meta row between two turns does not leave an empty bubble', () => {
+	const out = groupTranscript([
+		m({ id: 1, role: 'user', content: 'a' }),
+		m({ id: 2, role: 'assistant', content: 'A' }),
+		m({ id: 3, role: 'session_meta', content: { model: 'gpt-4' } as never }),
+		m({ id: 4, role: 'user', content: 'b' })
+	]);
+	assert.deepEqual(
+		out.map((t) => t.role),
+		['user', 'assistant', 'user']
+	);
+});
+
+test('an unknown future role is skipped rather than rendered as the agent', () => {
+	const out = groupTranscript([
+		m({ id: 1, role: 'telemetry', content: 'nothing to read here' }),
+		m({ id: 2, role: 'user', content: 'salut' })
+	]);
+	assert.equal(out.length, 1);
+	assert.equal(out[0].role, 'user');
+});
+
+test('the first page asked for is the LATEST one, at the upstream ceiling', () => {
+	const q = new URLSearchParams(transcriptQuery());
+	// `oldest` here would show the opening of a long conversation and hide its
+	// end — including the answer `reload()` exists to fetch.
+	assert.equal(q.get('order'), 'latest');
+	assert.equal(q.get('limit'), '500');
+	assert.equal(q.get('offset'), null);
+	assert.equal(TRANSCRIPT_PAGE, 500);
+});
+
+test('an offset pages backwards from the newest row', () => {
+	const q = new URLSearchParams(transcriptQuery(500));
+	assert.equal(q.get('order'), 'latest');
+	assert.equal(q.get('offset'), '500');
+});
+
+test('a nonsense offset cannot become a negative or fractional one', () => {
+	assert.equal(new URLSearchParams(transcriptQuery(-7)).get('offset'), null);
+	assert.equal(new URLSearchParams(transcriptQuery(12.6)).get('offset'), '12');
+	assert.equal(new URLSearchParams(transcriptQuery(NaN)).get('offset'), null);
+});
+
+test('a full page means older rows may exist, a short one means the start', () => {
+	assert.equal(hasOlderRows({ data: [], pagination: { limit: 500, returned: 500 } }), true);
+	assert.equal(hasOlderRows({ data: [], pagination: { limit: 500, returned: 499 } }), false);
+	assert.equal(hasOlderRows({ data: [], pagination: { limit: 500, returned: 0 } }), false);
+});
+
+test('a missing pagination block falls back to counting the rows', () => {
+	const rows = Array.from({ length: 500 }, (_, i) => m({ id: i, role: 'user' }));
+	assert.equal(hasOlderRows({ data: rows }), true);
+	assert.equal(hasOlderRows({ data: rows.slice(1) }), false);
+	assert.equal(hasOlderRows({}), false);
+	// A zero or absent `limit` must not make every page look full.
+	assert.equal(hasOlderRows({ data: rows, pagination: { limit: 0, returned: 500 } }), true);
+	assert.equal(hasOlderRows({ data: [], pagination: { limit: 0, returned: 0 } }), false);
+});
+
+test('the thread and the cross-conversation search read the same end', () => {
+	// A hit is only useful because the thread can scroll to it, and it can only
+	// scroll to a message it has loaded. If these two ever name different ends
+	// of a long transcript, every hit in the half the thread does not hold
+	// points at a `data-mid` that never reaches the DOM.
+	const store = methodBody(source('src/lib/stores/chat.svelte.ts'), 'async openSession(');
+	assert.match(store, /transcriptQuery\(\)/);
+	assert.doesNotMatch(store, /order=oldest/);
+
+	const search = source('src/lib/server/search.ts');
+	assert.match(search, /TRANSCRIPT_ORDER = 'latest'/);
+	assert.match(search, /order: TRANSCRIPT_ORDER/);
+	assert.doesNotMatch(search, /order: 'oldest'/);
+});
+
+test('pulling an older page re-groups the rows instead of splicing turns', () => {
+	// A page boundary falls on an arbitrary row, so a turn's tool rows can
+	// straddle it. Grouping the new page alone and putting it in front would
+	// render that turn twice.
+	const body = methodBody(source('src/lib/stores/chat.svelte.ts'), 'async loadOlderMessages(');
+	assert.match(body, /groupTranscript\(this\.#rows\)/);
+	// And it must stand down for a thread that holds a live turn: those
+	// messages are not in `#rows`, so re-grouping would drop them.
+	assert.match(body, /this\.streaming/);
+	assert.match(
+		methodBody(source('src/lib/stores/chat.svelte.ts'), 'async send('),
+		/this\.olderMessages = false/
+	);
+});
+
+test('a turn straddling a page boundary survives folding, not splicing', () => {
+	// Why `loadOlderMessages()` re-folds the accumulated rows instead of
+	// folding the new page on its own and putting it in front. A page boundary
+	// falls on an arbitrary row id, so the assistant row carrying `tool_calls`
+	// can sit on the older page while its tool result sits on the newer one.
+	const rows = [
+		m({ id: 1, role: 'user', content: 'run it' }),
+		m({
+			id: 2,
+			role: 'assistant',
+			content: '',
+			tool_calls: [{ id: 'c1', function: { name: 'terminal', arguments: '{}' } }] as HermesToolCall[]
+		}),
+		m({ id: 3, role: 'tool', tool_call_id: 'c1', tool_name: 'terminal', content: 'done' }),
+		m({ id: 4, role: 'assistant', content: 'It ran.' })
+	];
+	const older = rows.slice(0, 2);
+	const newer = rows.slice(2);
+
+	const spliced = [...groupTranscript(older), ...groupTranscript(newer)];
+	assert.equal(spliced.filter((t) => t.role === 'assistant').length, 2);
+
+	const folded = groupTranscript([...older, ...newer]);
+	assert.equal(folded.length, 2);
+	assert.equal(folded[1].content, 'It ran.');
+	assert.equal(folded[1].steps.length, 1);
+	assert.equal(folded[1].steps[0].tool_name, 'terminal');
+	assert.equal(folded[1].steps[0].result, 'done');
+	// And it is the same thing one unpaged load would have produced.
+	assert.deepEqual(folded, groupTranscript(rows));
 });

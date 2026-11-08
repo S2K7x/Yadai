@@ -11,7 +11,15 @@ import {
 	reasoningLabel,
 	type ReasoningEffort
 } from '$lib/reasoning';
-import { emptyAssistant, groupTranscript, uid, type UiMessage } from '$lib/transcript';
+import {
+	emptyAssistant,
+	groupTranscript,
+	hasOlderRows,
+	transcriptQuery,
+	uid,
+	type TranscriptPagination,
+	type UiMessage
+} from '$lib/transcript';
 import { drafts } from './drafts.svelte';
 import { toasts } from './toast.svelte';
 import type {
@@ -98,6 +106,17 @@ class ChatStore {
 	detached = $state(false);
 	loadingHistory = $state(false);
 	loadingSessions = $state(false);
+	/**
+	 * An older page of the open transcript may exist, and can be asked for.
+	 *
+	 * Only ever true when the page that was loaded came back full — i.e. for a
+	 * conversation longer than the 500 rows one request returns. It goes back to
+	 * false as soon as a turn is sent, because from then on the thread holds
+	 * messages that are not in `#rows`, and re-grouping would drop them;
+	 * reopening the conversation offers it again.
+	 */
+	olderMessages = $state(false);
+	loadingOlder = $state(false);
 
 	/** null while unknown, then true/false. Drives the offline banner. */
 	connected = $state<boolean | null>(null);
@@ -117,6 +136,15 @@ class ChatStore {
 	toolCount = $state(0);
 	mcpTools = $state<string[]>([]);
 
+	/**
+	 * The transcript rows exactly as loaded, oldest first.
+	 *
+	 * Kept beside `messages` so an older page can be *re-grouped with* the ones
+	 * already held instead of grouped on its own and spliced in front: a page
+	 * boundary falls on an arbitrary row, so a turn's tool rows can straddle it
+	 * and two independently folded halves would show that turn twice.
+	 */
+	#rows: HermesMessage[] = [];
 	#abort: AbortController | null = null;
 	#lastPrompt: LastPrompt | null = null;
 	/**
@@ -532,6 +560,8 @@ class ChatStore {
 			this.sessions = [res.session, ...this.sessions];
 			this.sessionId = res.session.id;
 			this.messages = [];
+			this.#rows = [];
+			this.olderMessages = false;
 			this.detached = false;
 			return res.session.id;
 		} catch (err) {
@@ -544,15 +574,23 @@ class ChatStore {
 		if (this.streaming) this.stop();
 		this.sessionId = id;
 		this.messages = [];
+		this.#rows = [];
+		this.olderMessages = false;
 		this.detached = false;
 		this.loadingHistory = true;
 		try {
 			const res = await withRetry(() =>
-				api<{ data: HermesMessage[] }>(
-					`/api/sessions/${encodeURIComponent(id)}/messages?order=oldest&limit=500`
+				api<{ data: HermesMessage[]; pagination?: TranscriptPagination }>(
+					`/api/sessions/${encodeURIComponent(id)}/messages?${transcriptQuery()}`
 				)
 			);
-			this.messages = groupTranscript(res.data ?? []);
+			// The conversation may have been changed under us while this was in
+			// flight (another row clicked, a compression adopted): the rows that
+			// came back belong to `id`, not to whatever is open now.
+			if (this.sessionId !== id) return;
+			this.#rows = res.data ?? [];
+			this.messages = groupTranscript(this.#rows);
+			this.olderMessages = hasOlderRows(res);
 		} catch (err) {
 			if (err instanceof ApiError && err.code === AppErrorCode.SessionGone) {
 				// Deleted from the CLI, Telegram, or another tab. Re-sync
@@ -566,6 +604,37 @@ class ChatStore {
 			}
 		} finally {
 			this.loadingHistory = false;
+		}
+	}
+
+	/**
+	 * Fetch the page of transcript above the one on screen.
+	 *
+	 * A conversation of more than `TRANSCRIPT_PAGE` rows cannot be shown whole:
+	 * the endpoint clamps `limit` to 500 and has no way to ask for everything.
+	 * The thread therefore holds its end — what a chat is about — and this walks
+	 * backwards from there, one page per click, re-grouping the whole set so no
+	 * turn is split across the seam.
+	 *
+	 * Refuses while a turn is running or once one has been sent: `#rows` would
+	 * no longer describe what is on screen.
+	 */
+	async loadOlderMessages() {
+		const id = this.sessionId;
+		if (!id || !this.olderMessages || this.loadingOlder || this.streaming) return;
+		this.loadingOlder = true;
+		try {
+			const res = await api<{ data: HermesMessage[]; pagination?: TranscriptPagination }>(
+				`/api/sessions/${encodeURIComponent(id)}/messages?${transcriptQuery(this.#rows.length)}`
+			);
+			if (this.sessionId !== id || this.streaming) return;
+			this.#rows = [...(res.data ?? []), ...this.#rows];
+			this.messages = groupTranscript(this.#rows);
+			this.olderMessages = hasOlderRows(res);
+		} catch (err) {
+			toasts.error(err, { label: 'Retry', run: () => this.loadOlderMessages() });
+		} finally {
+			this.loadingOlder = false;
 		}
 	}
 
@@ -856,6 +925,10 @@ class ChatStore {
 			timestamp: Date.now() / 1000
 		});
 		this.messages.push(emptyAssistant());
+		// From here the thread holds a turn that is not in `#rows`, so pulling
+		// an older page — which re-groups `#rows` — would drop it. The offer
+		// comes back when the conversation is reopened.
+		this.olderMessages = false;
 		// Read the pushed element back: $state hands out a proxy, and only
 		// mutations through that proxy are reactive.
 		const assistant = this.messages[this.messages.length - 1];
