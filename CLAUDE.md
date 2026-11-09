@@ -881,6 +881,40 @@ Ce que ça implique dans le code :
 - `agent_id` sur une ligne de session **n'est pas un champ Hermes**. C'est le
   proxy `/api/sessions*` qui l'ajoute à la sortie, à partir de `session_meta`.
 
+**Une équipe qu'on n'a pas pu lire n'est pas une équipe vide.** Le roster était
+le dernier magasin de l'app dont l'échec de lecture était avalé en entier — un
+`catch` vide, et rien d'autre. `items` restait `[]`, c'est-à-dire exactement ce
+qu'affiche une installation neuve. **Mesuré** en rejouant le vrai store (compilé
+par `svelte.compileModule`) contre les trois façons dont `/api/agents` échoue
+sur cette machine — connexion perdue, le seau de 12 jetons de `gate()`, un 500
+sur une lecture SQLite : trois tentatives (`withRetry`), puis le silence. Deux
+conséquences, et la seconde est destructrice :
+
+- Le panneau « Votre équipe » écrivait « No agents yet. » au-dessus d'un roster
+  jamais reçu — le panneau où le croire veut dire réécrire un agent qui existe
+  (le serveur refuse le doublon de nom, mais après coup et sans rapport
+  apparent avec ce que l'écran annonçait).
+- La puce d'entête annonçait `Agent: none, Yadai's default prompt` à propos
+  d'une conversation qui **a** un agent — `agent_id` vient de sa ligne de
+  session, pas du roster — et son menu n'offrait alors qu'une seule entrée,
+  « No agent ». La taper écrit ce détachement en amont pour de vrai. Une
+  lecture ratée ne doit pas être un chemin vers l'effacement de la persona
+  qu'elle n'a pas su afficher.
+
+Le roster passe donc par `panelState()` comme les trois panneaux facultatifs
+(point 4 du contrat d'erreurs) : `loadError`, un bloc d'échec **au-dessus** de
+la liste avec « Retry », une relecture à l'ouverture suivante
+(`shouldLoadPanel`, lu en `untrack()` — `failed` demande à être rechargé, donc
+un effet qui en dépendrait bouclerait), et `agentChipState()`
+(`src/lib/agents.ts`, pure et testée) qui rend trois réponses et non deux :
+`named`, `none` (la ligne de session est l'autorité sur l'*existence* d'un
+agent) et `unknown` — porté, mais innommable. Dans cet état la puce montre une
+bille accentuée et un « ? », et le menu propose de **relire** au lieu de
+proposer un choix composé sur rien. Un roster lu qui ne liste pas l'id reste
+`none` : supprimer un agent délie ses conversations dans la même transaction.
+Une écriture acceptée répare aussi la lecture, puisque les trois routes
+répondent avec le roster entier.
+
 **Ce qui n'est PAS fait, et ne doit pas être promis** : les sous-agents ne sont
 pas streamés. Sur la Sessions API une délégation n'apparaît que comme une étape
 d'outil `delegate_task` ; les événements `subagent.start` / `subagent.complete`

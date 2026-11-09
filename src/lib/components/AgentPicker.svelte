@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { agents } from '$lib/stores/agents.svelte';
 	import { chat } from '$lib/stores/chat.svelte';
-	import { agentColor, directReports } from '$lib/agents';
+	import { agentChipState, agentColor, directReports } from '$lib/agents';
 	import MenuChip from './MenuChip.svelte';
 
 	interface Props {
@@ -12,61 +12,100 @@
 
 	let active = $derived(agents.byId(chat.activeAgentId));
 	let reports = $derived(active ? directReports(agents.items, active) : []);
+	/**
+	 * Three answers, not two — see `agentChipState`.
+	 *
+	 * A roster that failed to load used to make this chip say "no agent" about a
+	 * conversation that had one, and leave a menu whose only entry was
+	 * "No agent" — one tap from detaching the persona for real. So when the
+	 * roster is not readable the menu offers to read it again instead of
+	 * offering a choice made out of nothing.
+	 */
+	let chipState = $derived(agentChipState(agents.state, chat.activeAgentId, active));
+	let unreadable = $derived(agents.state !== 'ready');
+	let dot = $derived(
+		active && chipState === 'named'
+			? agentColor(active)
+			: chipState === 'unknown'
+				? 'var(--accent)'
+				: 'var(--text-faint)'
+	);
 </script>
 
 <MenuChip
 	width={320}
 	triggerWidth={170}
-	label={active ? `Agent: ${active.name}` : "Agent: none, Yadai's default prompt"}
-	title={active ? `Agent: ${active.name}` : "No agent — Yadai's default prompt"}
+	label={chipState === 'named'
+		? `Agent: ${active?.name}`
+		: chipState === 'unknown'
+			? 'Agent: set, but the team could not be read'
+			: "Agent: none, Yadai's default prompt"}
+	title={chipState === 'named'
+		? `Agent: ${active?.name}`
+		: chipState === 'unknown'
+			? 'This chat has an agent, but the team could not be read.'
+			: "No agent — Yadai's default prompt"}
 >
 	{#snippet chip()}
-		<span
-			class="dot"
-			style="--agent: {active ? agentColor(active) : 'var(--text-faint)'}"
-			aria-hidden="true"
-		></span>
-		<span class="label">{active ? active.name : 'Agent'}</span>
+		<span class="dot" style="--agent: {dot}" aria-hidden="true"></span>
+		<span class="label">{chipState === 'named' ? active?.name : 'Agent'}</span>
+		{#if chipState === 'unknown'}<span class="unknown" aria-hidden="true">?</span>{/if}
 	{/snippet}
 
 	{#snippet menu(close)}
-		<p class="hint">
-			{#if chat.sessionId}
-				The chosen agent takes over this conversation from the next message.
-			{:else}
-				The chosen agent will start the next chat.
-			{/if}
-		</p>
-		<div class="items">
+		{#if unreadable}
+			<!-- No list and no "No agent" entry: both would be a choice composed
+			     on a roster we do not have, and the second one writes a real
+			     detachment upstream. -->
+			<p class="hint">
+				{agents.loadError ?? 'Reading the team…'}
+			</p>
 			<button
-				class:sel={!chat.activeAgentId}
+				class="manage retry"
+				disabled={agents.loading}
 				onclick={() => {
-					chat.setAgent('');
-					close(true);
-				}}
+					void agents.reload();
+				}}>{agents.loading ? 'Reading…' : 'Retry'}</button
 			>
-				<span class="n">No agent</span>
-				<span class="j">Yadai's default prompt</span>
-			</button>
-			{#each agents.items as agent (agent.id)}
+		{:else}
+			<p class="hint">
+				{#if chat.sessionId}
+					The chosen agent takes over this conversation from the next message.
+				{:else}
+					The chosen agent will start the next chat.
+				{/if}
+			</p>
+			<div class="items">
 				<button
-					class:sel={agent.id === chat.activeAgentId}
+					class:sel={!chat.activeAgentId}
 					onclick={() => {
-						chat.setAgent(agent.id);
+						chat.setAgent('');
 						close(true);
 					}}
 				>
-					<span class="n"
-						><span class="dot" style="--agent: {agentColor(agent)}"></span>{agent.name}</span
-					>
-					{#if agent.role}<span class="j">{agent.role}</span>{/if}
+					<span class="n">No agent</span>
+					<span class="j">Yadai's default prompt</span>
 				</button>
-			{/each}
-		</div>
-		{#if reports.length > 0}
-			<p class="hint team">
-				{active?.name} can delegate to {reports.map((a) => a.name).join(', ')}.
-			</p>
+				{#each agents.items as agent (agent.id)}
+					<button
+						class:sel={agent.id === chat.activeAgentId}
+						onclick={() => {
+							chat.setAgent(agent.id);
+							close(true);
+						}}
+					>
+						<span class="n"
+							><span class="dot" style="--agent: {agentColor(agent)}"></span>{agent.name}</span
+						>
+						{#if agent.role}<span class="j">{agent.role}</span>{/if}
+					</button>
+				{/each}
+			</div>
+			{#if reports.length > 0}
+				<p class="hint team">
+					{active?.name} can delegate to {reports.map((a) => a.name).join(', ')}.
+				</p>
+			{/if}
 		{/if}
 		<button
 			class="manage"
@@ -93,6 +132,12 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+	/* The chip carries an agent it cannot name: better a mark than a lie. */
+	.unknown {
+		flex: 0 0 auto;
+		color: var(--accent);
+		font-weight: 600;
 	}
 	.items {
 		display: flex;
@@ -156,6 +201,17 @@
 	}
 	.manage:hover {
 		color: var(--text);
+	}
+	.retry {
+		margin-top: 0;
+		color: var(--text);
+		text-align: center;
+		background: var(--bg-sunken);
+		border-radius: 999px;
+	}
+	.retry:disabled {
+		opacity: 0.45;
+		cursor: default;
 	}
 	/* Thumb-sized rows on a phone, like every other control of the app. */
 	@media (max-width: 820px) {

@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import Modal from './Modal.svelte';
+	import { shouldLoadPanel } from '$lib/availability';
 	import { agents } from '$lib/stores/agents.svelte';
 	import { chat } from '$lib/stores/chat.svelte';
 	import {
@@ -31,8 +33,18 @@
 	let editing = $state<string | null>(null);
 	let draft = $state<AgentDraft>(emptyDraft());
 
+	/**
+	 * Read on opening, and read *again* on a later opening when the last one
+	 * failed — `shouldLoadPanel`, like the three other gated panels.
+	 *
+	 * `untrack` is not cosmetic here: `failed` is a state that asks to be
+	 * reloaded, so an effect that re-ran on every store mutation would call
+	 * `reload()`, watch the failure land, and call it again. `open` must stay
+	 * the only dependency.
+	 */
 	$effect(() => {
-		if (open) agents.ensureLoaded();
+		if (!open) return;
+		if (untrack(() => shouldLoadPanel(agents.state, agents.loading))) void agents.reload();
 	});
 
 	/**
@@ -147,9 +159,26 @@
 
 	<div class="body">
 		{#if editing === null}
+			<!-- Above the list, not instead of it: a read that fails after a save
+			     must not make the team vanish from the screen. -->
+			{#if agents.state === 'failed'}
+				<div class="read-failed">
+					<p>The team could not be read.</p>
+					<p class="muted small">{agents.loadError}</p>
+					<button onclick={() => void agents.reload()} disabled={agents.loading}>
+						{agents.loading ? 'Reading…' : 'Retry'}
+					</button>
+				</div>
+			{/if}
+
 			<button class="new" onclick={startCreate}>＋ New agent</button>
 
-			{#if agents.items.length === 0}
+			<!-- "No agents yet." only once a read has actually answered: an empty
+			     `items` is also what a failed or pending read looks like, and
+			     this is the panel where believing it means writing a duplicate. -->
+			{#if agents.state === 'unread'}
+				<p class="none">Loading…</p>
+			{:else if agents.loaded && agents.items.length === 0}
 				<p class="none">
 					No agents yet. An agent is a name, a role and a system prompt
 					sent with every message.
@@ -597,6 +626,29 @@
 		text-align: center;
 		color: var(--text-faint);
 		font-size: 13px;
+	}
+	.read-failed {
+		margin-bottom: var(--gap-card);
+		padding: 12px 14px;
+		border-radius: var(--radius-card);
+		background: var(--bg-raised);
+		box-shadow: var(--shadow-card);
+		text-align: center;
+	}
+	.read-failed p {
+		margin: 0 0 6px;
+		font-size: 13px;
+	}
+	.read-failed button {
+		min-height: 34px;
+		padding: 6px 14px;
+		border-radius: 999px;
+		background: var(--bg-sunken);
+		font-size: 13px;
+	}
+	.read-failed button:disabled {
+		opacity: 0.45;
+		cursor: default;
 	}
 	.foot-note {
 		flex: 1;

@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { methodBody, source } from './source.ts';
 import {
 	MAX_AGENTS,
 	MAX_AGENT_CHILDREN,
 	MAX_AGENT_NAME,
 	MAX_AGENT_PROMPT,
 	CHILD_BRIEF_CHARS,
+	agentChipState,
 	agentFromDraft,
 	agentSlug,
 	composeSystemPrompt,
@@ -512,4 +514,90 @@ test('the same child listed twice is walked once', () => {
 	];
 	const nodes = teamTree(list, 'boss');
 	assert.equal(nodes.filter((n) => n.agent.id === 'seeker').length, 1);
+});
+
+// ---------------------------------------------------------------------------
+// A roster that could not be read is not an empty roster
+// ---------------------------------------------------------------------------
+
+/**
+ * Measured before the fix, by driving the real store (compiled with
+ * `svelte.compileModule`) against the three ways `/api/agents` actually fails
+ * on this machine — a dropped connection, the 12-burst rate gate, and a 500
+ * from a SQLite read. All three: three attempts via `withRetry`, then `items`
+ * left `[]`, `loaded` left false, and *nothing shown anywhere* — the catch was
+ * empty. The panel then printed "No agents yet." and the header chip announced
+ * "Agent: none, Yadai's default prompt" about a conversation that had one,
+ * above a menu whose only entry was "No agent" — one tap from writing that
+ * detachment upstream for real.
+ */
+test('a named agent is named, whatever the roster is worth', () => {
+	const chef = agent('chef');
+	for (const roster of ['ready', 'unread', 'failed', 'disabled'] as const) {
+		assert.equal(agentChipState(roster, 'chef', chef), 'named');
+	}
+});
+
+test('no agent on the row means no agent, whatever the roster is worth', () => {
+	for (const roster of ['ready', 'unread', 'failed', 'disabled'] as const) {
+		assert.equal(agentChipState(roster, '', undefined), 'none');
+		assert.equal(agentChipState(roster, null, undefined), 'none');
+		assert.equal(agentChipState(roster, undefined, undefined), 'none');
+	}
+});
+
+test('an agent the roster does not list is gone once the roster was read', () => {
+	// Deleting an agent unlinks its conversations in the same transaction, so a
+	// read roster that omits the id is the honest answer "it no longer exists".
+	assert.equal(agentChipState('ready', 'chef', undefined), 'none');
+});
+
+test('an agent the roster never answered for is unknown, not absent', () => {
+	for (const roster of ['unread', 'failed'] as const) {
+		assert.equal(agentChipState(roster, 'chef', undefined), 'unknown');
+	}
+});
+
+/**
+ * Source checks, in the spirit of `tests/availability.test.ts`: the store is
+ * Svelte runes and the pickers are compiled markup, neither of which imports
+ * under the type stripper. What is guarded is therefore the shape — and the
+ * shape is the whole fix, since an empty `catch` is exactly what passed every
+ * check, test and build for as long as it lived.
+ */
+test('the roster store reports a failed read instead of swallowing it', () => {
+	const src = source('src/lib/stores/agents.svelte.ts');
+	const load = methodBody(src, 'async #load()');
+	assert.match(load, /catch \(err\)/, 'the load must name its error');
+	assert.match(load, /this\.loadError = humanizeError\(err\)/, 'and report it');
+	assert.match(load, /this\.loadError = null/, 'and clear it once a read succeeds');
+	assert.match(src, /panelState\(/, 'the roster must classify through $lib/availability');
+});
+
+test('the agent picker never offers a choice built on a roster it lacks', () => {
+	const src = source('src/lib/components/AgentPicker.svelte');
+	assert.match(src, /agentChipState\(/, 'the chip must go through agentChipState()');
+	// The detaching entry and the list both live inside the readable branch.
+	const guard = src.indexOf('{#if unreadable}');
+	assert.notEqual(guard, -1, 'the menu must branch on the roster being readable');
+	assert.ok(
+		guard < src.indexOf("chat.setAgent('')"),
+		'"No agent" must sit after that guard, not before it'
+	);
+	assert.match(src, /agents\.reload\(\)/, 'and the unreadable branch must offer a retry');
+});
+
+test('the team panel does not print "No agents yet." over a roster it never got', () => {
+	const src = source('src/lib/components/AgentsPanel.svelte');
+	assert.match(
+		src,
+		/agents\.loaded && agents\.items\.length === 0/,
+		'the empty-state line must require a successful read'
+	);
+	assert.match(src, /agents\.state === 'failed'/, 'and a failed read must say so');
+	assert.match(
+		src,
+		/untrack\(\(\) => shouldLoadPanel\(/,
+		'the read must be gated untracked, or a failure retries in a loop'
+	);
 });

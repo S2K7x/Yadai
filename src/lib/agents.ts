@@ -23,6 +23,7 @@
  */
 
 import { clip, oneLine, slugify } from './text.ts';
+import type { PanelState } from './availability.ts';
 
 export interface Agent {
 	id: string;
@@ -266,6 +267,45 @@ export function directReports(list: Agent[], agent: Agent): Agent[] {
 	if (!agent.orchestrator) return [];
 	const byId = new Map(list.map((a) => [a.id, a]));
 	return agent.children.map((id) => byId.get(id)).filter((a): a is Agent => Boolean(a));
+}
+
+/**
+ * What the header chip may honestly say about a conversation's agent.
+ *
+ * Three answers, not two, for the same reason `panelState()` has four: a
+ * roster we could not read tells us nothing about the conversation. Which
+ * agent a conversation belongs to comes from its own session row (`agent_id`,
+ * added to the row by the proxy), so "this conversation has an agent" is known
+ * even when the roster that would give it a *name* is missing.
+ *
+ * Measured against the real store, with `/api/agents` answering the three ways
+ * it actually fails here — connection lost, the 12-burst rate gate, a 500 from
+ * a SQLite read: all three left `items` empty with no message anywhere, so the
+ * chip read "Agent" with the faint dot and announced itself as
+ * "Agent: none, Yadai's default prompt" about a conversation that had one. The
+ * menu then offered exactly one choice, "No agent" — picking it writes that
+ * detachment upstream for real. A failed read must not be a route to erasing
+ * the persona it failed to show.
+ */
+export type AgentChipState =
+	/** The agent is known and named. */
+	| 'named'
+	/** The conversation carries no agent — Hermes' default prompt. */
+	| 'none'
+	/** It carries one, but the roster is unread or unreadable. */
+	| 'unknown';
+
+export function agentChipState(
+	roster: PanelState,
+	agentId: string | null | undefined,
+	agent: Agent | undefined
+): AgentChipState {
+	if (agent) return 'named';
+	// The session row is authoritative on *whether* there is an agent.
+	if (!agentId) return 'none';
+	// A roster that was read and does not list it: the agent really is gone
+	// (deleting one unlinks its conversations in the same transaction).
+	return roster === 'ready' ? 'none' : 'unknown';
 }
 
 /**
